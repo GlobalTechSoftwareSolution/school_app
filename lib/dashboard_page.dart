@@ -3,6 +3,12 @@ import 'package:http/http.dart' as http;
 import 'dart:convert';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'login_page.dart';
+import 'screens/student/student_dashboard.dart';
+import 'screens/teacher/teacher_dashboard.dart';
+import 'screens/admin/admin_dashboard.dart';
+import 'screens/management/management_dashboard.dart';
+import 'screens/principal/principal_dashboard.dart';
+import 'screens/parent/parent_dashboard.dart';
 
 class DashboardPage extends StatefulWidget {
   final String userRole;
@@ -23,7 +29,9 @@ class DashboardPage extends StatefulWidget {
 class _DashboardPageState extends State<DashboardPage> {
   final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
   bool _menuOpen = false;
+  bool _sidebarVisible = false;
   String _selectedMenuItem = 'Dashboard';
+  bool _isLoading = false;
 
   // Role-based navigation items
   Map<String, List<Map<String, String>>> getRoleNavigation() {
@@ -205,12 +213,13 @@ class _DashboardPageState extends State<DashboardPage> {
         children: [
           // Header with user info
           Container(
-            padding: const EdgeInsets.all(16),
-            decoration: BoxDecoration(
-              border: Border(
-                bottom: BorderSide(color: Colors.blue[700]!, width: 1),
-              ),
+            margin: const EdgeInsets.only(
+              left: 16,
+              top: 12,
+              right: 16,
+              bottom: 0,
             ),
+            padding: const EdgeInsets.fromLTRB(24, 24, 24, 12),
             child: Row(
               children: [
                 CircleAvatar(
@@ -228,29 +237,34 @@ class _DashboardPageState extends State<DashboardPage> {
                   ),
                 ),
                 const SizedBox(width: 12),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        widget.userName,
-                        style: const TextStyle(
-                          color: Colors.white,
-                          fontWeight: FontWeight.bold,
-                          fontSize: 16,
-                        ),
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      widget.userName,
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontWeight: FontWeight.bold,
+                        fontSize: 16,
                       ),
-                      Text(
-                        roleName.toUpperCase(),
-                        style: TextStyle(color: Colors.blue[100], fontSize: 12),
-                      ),
-                    ],
-                  ),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                    Text(
+                      roleName.toUpperCase(),
+                      style: TextStyle(color: Colors.blue[100], fontSize: 12),
+                    ),
+                  ],
                 ),
               ],
             ),
+          ),
+
+          // Separator line
+          Container(
+            margin: const EdgeInsets.symmetric(horizontal: 16),
+            height: 1,
+            color: Colors.blue[700],
           ),
 
           // Navigation menu
@@ -265,7 +279,7 @@ class _DashboardPageState extends State<DashboardPage> {
                   leading: Icon(
                     _getMenuIcon(item['name']!),
                     color: isSelected ? Colors.white : Colors.blue[100],
-                    size: 20,
+                    size: 24,
                   ),
                   title: Text(
                     item['name']!,
@@ -278,10 +292,18 @@ class _DashboardPageState extends State<DashboardPage> {
                   ),
                   selected: isSelected,
                   selectedTileColor: Colors.blue[700],
-                  onTap: () {
+                  onTap: () async {
+                    setState(() {
+                      _isLoading = true;
+                      _sidebarVisible = false;
+                    });
+                    if (MediaQuery.of(context).size.width < 768) {
+                      Navigator.of(context).pop();
+                    }
+                    await Future.delayed(const Duration(milliseconds: 500));
                     setState(() {
                       _selectedMenuItem = item['name']!;
-                      _menuOpen = false;
+                      _isLoading = false;
                     });
                   },
                 );
@@ -363,7 +385,7 @@ class _DashboardPageState extends State<DashboardPage> {
   Widget _buildMainContent() {
     return Expanded(
       child: Container(
-        color: const Color(0xFFF5F5F5), // Simple background like React
+        color: const Color(0xFFF5F5F5), // Default background
         child: Column(
           children: [
             // Top Header Bar (like React)
@@ -383,12 +405,17 @@ class _DashboardPageState extends State<DashboardPage> {
               ),
               child: Row(
                 children: [
-                  // Mobile menu button on left
-                  if (MediaQuery.of(context).size.width < 768)
-                    IconButton(
-                      icon: const Icon(Icons.menu, size: 24),
-                      onPressed: () => _scaffoldKey.currentState?.openDrawer(),
-                    ),
+                  // Hamburger menu button
+                  IconButton(
+                    icon: const Icon(Icons.menu, size: 24),
+                    onPressed: () {
+                      if (MediaQuery.of(context).size.width < 768) {
+                        _scaffoldKey.currentState?.openDrawer();
+                      } else {
+                        setState(() => _sidebarVisible = !_sidebarVisible);
+                      }
+                    },
+                  ),
 
                   // Title in center - using Flexible to prevent overflow
                   Flexible(
@@ -405,9 +432,8 @@ class _DashboardPageState extends State<DashboardPage> {
                     ),
                   ),
 
-                  // Empty space for balance (only on mobile)
-                  if (MediaQuery.of(context).size.width < 768)
-                    const SizedBox(width: 48),
+                  // Empty space for balance
+                  const SizedBox(width: 48),
                 ],
               ),
             ),
@@ -415,7 +441,7 @@ class _DashboardPageState extends State<DashboardPage> {
             // Main Content Area
             Expanded(
               child: SingleChildScrollView(
-                padding: const EdgeInsets.all(20),
+                padding: const EdgeInsets.all(16),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
@@ -425,9 +451,10 @@ class _DashboardPageState extends State<DashboardPage> {
                       style: const TextStyle(fontSize: 16, color: Colors.grey),
                     ),
 
-                    const SizedBox(height: 24),
+                    const SizedBox(height: 8),
 
                     // Dashboard content based on selected menu
+                    const SizedBox(height: 16),
                     _buildSelectedContent(),
                   ],
                 ),
@@ -440,9 +467,41 @@ class _DashboardPageState extends State<DashboardPage> {
   }
 
   Widget _buildSelectedContent() {
+    if (_isLoading) {
+      return Container(
+        height: 400,
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(12),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.grey.withOpacity(0.1),
+              spreadRadius: 1,
+              blurRadius: 4,
+            ),
+          ],
+        ),
+        child: const Center(
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              CircularProgressIndicator(
+                valueColor: AlwaysStoppedAnimation<Color>(Colors.blue),
+              ),
+              SizedBox(height: 16),
+              Text(
+                'Loading...',
+                style: TextStyle(fontSize: 16, color: Colors.grey),
+              ),
+            ],
+          ),
+        ),
+      );
+    }
+
     switch (_selectedMenuItem.toLowerCase()) {
       case 'dashboard':
-        return _buildDashboardContent();
+        return _getRoleBasedDashboard();
       case 'profile':
         return _buildProfileContent();
       default:
@@ -489,11 +548,30 @@ class _DashboardPageState extends State<DashboardPage> {
     }
   }
 
-  Widget _buildDashboardContent() {
+  Widget _getRoleBasedDashboard() {
+    final role = widget.userRole.toLowerCase();
+    if (role == 'student' || role == 'students') {
+      return const StudentDashboard();
+    } else if (role == 'teacher' || role == 'teachers') {
+      return const TeacherDashboard();
+    } else if (role == 'admin') {
+      return const AdminDashboard();
+    } else if (role == 'management') {
+      return const ManagementDashboard();
+    } else if (role == 'principal') {
+      return const PrincipalDashboard();
+    } else if (role == 'parent' || role == 'parents') {
+      return const ParentDashboard();
+    } else {
+      // Default dashboard for unrecognized roles
+      return _buildDefaultDashboard();
+    }
+  }
+
+  Widget _buildDefaultDashboard() {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        // Quick Stats Cards
         GridView.count(
           crossAxisCount: MediaQuery.of(context).size.width > 768 ? 4 : 2,
           shrinkWrap: true,
@@ -501,26 +579,11 @@ class _DashboardPageState extends State<DashboardPage> {
           crossAxisSpacing: 16,
           mainAxisSpacing: 16,
           children: [
-            _buildStatCard(
-              'Attendance',
-              '95%',
-              Icons.check_circle,
-              Colors.green,
-            ),
-            _buildStatCard('Assignments', '12', Icons.assignment, Colors.blue),
-            _buildStatCard(
-              'Notifications',
-              '3',
-              Icons.notifications,
-              Colors.orange,
-            ),
-            _buildStatCard('Messages', '7', Icons.message, Colors.purple),
+            _buildStatCard('Welcome', 'Hello!', Icons.waving_hand, Colors.blue),
+            _buildStatCard('Dashboard', 'Ready', Icons.dashboard, Colors.green),
           ],
         ),
-
         const SizedBox(height: 32),
-
-        // Recent Activity
         Container(
           padding: const EdgeInsets.all(24),
           decoration: BoxDecoration(
@@ -534,40 +597,11 @@ class _DashboardPageState extends State<DashboardPage> {
               ),
             ],
           ),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              const Text(
-                'Recent Activity',
-                style: TextStyle(
-                  fontSize: 20,
-                  fontWeight: FontWeight.bold,
-                  color: Colors.black87,
-                ),
-              ),
-              const SizedBox(height: 16),
-              _buildActivityItem(
-                'Assignment submitted',
-                'Mathematics homework completed',
-                '2 hours ago',
-                Icons.assignment_turned_in,
-                Colors.green,
-              ),
-              _buildActivityItem(
-                'Attendance marked',
-                'Present for Computer Science class',
-                '1 day ago',
-                Icons.check_circle,
-                Colors.blue,
-              ),
-              _buildActivityItem(
-                'New notice',
-                'School holiday announcement',
-                '2 days ago',
-                Icons.notifications,
-                Colors.orange,
-              ),
-            ],
+          child: const Center(
+            child: Text(
+              'Welcome to your Dashboard',
+              style: TextStyle(fontSize: 18, color: Colors.black87),
+            ),
           ),
         ),
       ],
@@ -630,12 +664,13 @@ class _DashboardPageState extends State<DashboardPage> {
     String title,
     String value,
     IconData icon,
-    Color color,
-  ) {
+    Color color, {
+    Color bgColor = Colors.white,
+  }) {
     return Container(
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: bgColor,
         borderRadius: BorderRadius.circular(12),
         boxShadow: [
           BoxShadow(
@@ -739,6 +774,218 @@ class _DashboardPageState extends State<DashboardPage> {
     );
   }
 
+  Widget _buildStudentStatCard(
+    String title,
+    String value,
+    String emoji,
+    Color color,
+    String subtitle,
+  ) {
+    return Container(
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: Colors.white.withOpacity(0.8),
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.grey.withOpacity(0.1),
+            spreadRadius: 1,
+            blurRadius: 4,
+          ),
+        ],
+      ),
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Container(
+            width: 48,
+            height: 48,
+            decoration: BoxDecoration(
+              color: color.withOpacity(0.1),
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: Center(
+              child: Text(emoji, style: const TextStyle(fontSize: 24)),
+            ),
+          ),
+          const SizedBox(height: 12),
+          Text(
+            value,
+            style: const TextStyle(
+              fontSize: 24,
+              fontWeight: FontWeight.bold,
+              color: Colors.black87,
+            ),
+          ),
+          const SizedBox(height: 4),
+          Text(
+            title,
+            style: TextStyle(fontSize: 12, color: Colors.grey[600]),
+            textAlign: TextAlign.center,
+          ),
+          const SizedBox(height: 4),
+          Text(
+            subtitle,
+            style: TextStyle(fontSize: 10, color: Colors.grey[500]),
+            textAlign: TextAlign.center,
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildQuickLink(String title, String emoji, Color color) {
+    return GestureDetector(
+      onTap: () {},
+      child: Container(
+        margin: const EdgeInsets.only(bottom: 12),
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: color.withOpacity(0.1),
+          borderRadius: BorderRadius.circular(12),
+        ),
+        child: Row(
+          children: [
+            Text(emoji, style: const TextStyle(fontSize: 20)),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Text(
+                title,
+                style: TextStyle(
+                  fontSize: 14,
+                  fontWeight: FontWeight.w500,
+                  color: Colors.black87,
+                ),
+              ),
+            ),
+            Icon(Icons.arrow_forward_ios, size: 16, color: color),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildNoticeCard(
+    String title,
+    String message,
+    String priority,
+    String author,
+    String time,
+  ) {
+    Color priorityColor;
+    switch (priority.toLowerCase()) {
+      case 'high':
+        priorityColor = Colors.red;
+        break;
+      case 'medium':
+        priorityColor = Colors.orange;
+        break;
+      case 'low':
+        priorityColor = Colors.green;
+        break;
+      default:
+        priorityColor = Colors.grey;
+    }
+
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.grey[50],
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: Colors.grey[200]!),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Expanded(
+                child: Text(
+                  title,
+                  style: const TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.w600,
+                    color: Colors.black87,
+                  ),
+                ),
+              ),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                decoration: BoxDecoration(
+                  color: priorityColor.withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: priorityColor.withOpacity(0.3)),
+                ),
+                child: Text(
+                  priority.toUpperCase(),
+                  style: TextStyle(
+                    fontSize: 10,
+                    fontWeight: FontWeight.w500,
+                    color: priorityColor,
+                  ),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 8),
+          Text(
+            message,
+            style: TextStyle(
+              fontSize: 14,
+              color: Colors.grey[700],
+              height: 1.4,
+            ),
+            maxLines: 2,
+            overflow: TextOverflow.ellipsis,
+          ),
+          const SizedBox(height: 12),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text(
+                'By: $author',
+                style: TextStyle(fontSize: 12, color: Colors.grey[600]),
+              ),
+              Text(
+                time,
+                style: TextStyle(fontSize: 12, color: Colors.grey[500]),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildActivitySummary(String title, String count, Color color) {
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: color.withOpacity(0.1),
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: Column(
+        children: [
+          Text(
+            count,
+            style: TextStyle(
+              fontSize: 24,
+              fontWeight: FontWeight.bold,
+              color: color,
+            ),
+          ),
+          const SizedBox(height: 4),
+          Text(
+            title,
+            style: TextStyle(fontSize: 12, color: Colors.grey[600]),
+            textAlign: TextAlign.center,
+          ),
+        ],
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final navigation = getRoleNavigation();
@@ -750,19 +997,20 @@ class _DashboardPageState extends State<DashboardPage> {
           ? Drawer(child: _buildSidebar())
           : null,
       body: SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.only(
-            top: 8,
-          ), // Reduced top padding to move header up
-          child: Row(
-            children: [
-              // Desktop Sidebar
-              if (MediaQuery.of(context).size.width >= 768) _buildSidebar(),
+        child: Row(
+          children: [
+            // Desktop Sidebar with animation
+            if (MediaQuery.of(context).size.width >= 768)
+              AnimatedContainer(
+                width: _sidebarVisible ? 280 : 0,
+                duration: const Duration(milliseconds: 300),
+                curve: Curves.easeInOut,
+                child: _sidebarVisible ? _buildSidebar() : const SizedBox(),
+              ),
 
-              // Main Content
-              _buildMainContent(),
-            ],
-          ),
+            // Main Content
+            _buildMainContent(),
+          ],
         ),
       ),
     );
