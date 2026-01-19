@@ -363,8 +363,7 @@ class _DashboardPageState extends State<DashboardPage> {
   Widget _buildMainContent() {
     return Expanded(
       child: Container(
-        color:
-            Colors.blue[600], // Blue background from top to hamburger container
+        color: const Color(0xFFF5F5F5), // Simple background like React
         child: Column(
           children: [
             // Top Header Bar (like React)
@@ -750,14 +749,21 @@ class _DashboardPageState extends State<DashboardPage> {
       drawer: MediaQuery.of(context).size.width < 768
           ? Drawer(child: _buildSidebar())
           : null,
-      body: Row(
-        children: [
-          // Desktop Sidebar
-          if (MediaQuery.of(context).size.width >= 768) _buildSidebar(),
+      body: SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.only(
+            top: 8,
+          ), // Reduced top padding to move header up
+          child: Row(
+            children: [
+              // Desktop Sidebar
+              if (MediaQuery.of(context).size.width >= 768) _buildSidebar(),
 
-          // Main Content
-          _buildMainContent(),
-        ],
+              // Main Content
+              _buildMainContent(),
+            ],
+          ),
+        ),
       ),
     );
   }
