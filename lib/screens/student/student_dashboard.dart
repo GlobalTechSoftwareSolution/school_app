@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 
 class StudentDashboard extends StatelessWidget {
-  const StudentDashboard({super.key});
+  final Function(String) onNavigate;
+
+  const StudentDashboard({super.key, required this.onNavigate});
 
   Widget _buildStudentStatCard(
     String title,
@@ -9,63 +11,72 @@ class StudentDashboard extends StatelessWidget {
     String emoji,
     Color color,
     String subtitle,
+    VoidCallback? onTap,
   ) {
-    return Container(
-      padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(
-        color: Colors.white.withOpacity(0.8),
-        borderRadius: BorderRadius.circular(16),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.grey.withOpacity(0.1),
-            spreadRadius: 1,
-            blurRadius: 4,
-          ),
-        ],
-      ),
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Container(
-            width: 48,
-            height: 48,
-            decoration: BoxDecoration(
-              color: color.withOpacity(0.1),
-              borderRadius: BorderRadius.circular(12),
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        padding: const EdgeInsets.all(20),
+        decoration: BoxDecoration(
+          color: Colors.white.withOpacity(0.8),
+          borderRadius: BorderRadius.circular(16),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.grey.withOpacity(0.1),
+              spreadRadius: 1,
+              blurRadius: 4,
             ),
-            child: Center(
-              child: Text(emoji, style: const TextStyle(fontSize: 24)),
+          ],
+        ),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Container(
+              width: 48,
+              height: 48,
+              decoration: BoxDecoration(
+                color: color.withOpacity(0.1),
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: Center(
+                child: Text(emoji, style: const TextStyle(fontSize: 24)),
+              ),
             ),
-          ),
-          const SizedBox(height: 12),
-          Text(
-            value,
-            style: const TextStyle(
-              fontSize: 24,
-              fontWeight: FontWeight.bold,
-              color: Colors.black87,
+            const SizedBox(height: 12),
+            Text(
+              value,
+              style: const TextStyle(
+                fontSize: 24,
+                fontWeight: FontWeight.bold,
+                color: Colors.black87,
+              ),
             ),
-          ),
-          const SizedBox(height: 4),
-          Text(
-            title,
-            style: TextStyle(fontSize: 12, color: Colors.grey[600]),
-            textAlign: TextAlign.center,
-          ),
-          const SizedBox(height: 4),
-          Text(
-            subtitle,
-            style: TextStyle(fontSize: 10, color: Colors.grey[500]),
-            textAlign: TextAlign.center,
-          ),
-        ],
+            const SizedBox(height: 4),
+            Text(
+              title,
+              style: TextStyle(fontSize: 12, color: Colors.grey[600]),
+              textAlign: TextAlign.center,
+            ),
+            const SizedBox(height: 4),
+            Text(
+              subtitle,
+              style: TextStyle(fontSize: 10, color: Colors.grey[500]),
+              textAlign: TextAlign.center,
+            ),
+          ],
+        ),
       ),
     );
   }
 
-  Widget _buildQuickLink(String title, String emoji, Color color) {
+  Widget _buildQuickLink(
+    String title,
+    String emoji,
+    Color color,
+    VoidCallback? onTap,
+  ) {
     return GestureDetector(
-      onTap: () {},
+      onTap: onTap,
       child: Container(
         margin: const EdgeInsets.only(bottom: 12),
         padding: const EdgeInsets.all(16),
@@ -187,44 +198,45 @@ class StudentDashboard extends StatelessWidget {
     );
   }
 
-  Widget _buildActivitySummary(String title, String count, Color color) {
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: color.withOpacity(0.1),
-        borderRadius: BorderRadius.circular(12),
-      ),
-      child: Column(
-        children: [
-          Text(
-            count,
-            style: TextStyle(
-              fontSize: 24,
-              fontWeight: FontWeight.bold,
-              color: color,
+  Widget _buildActivitySummary(
+    String title,
+    String count,
+    Color color,
+    VoidCallback? onTap,
+  ) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: color.withOpacity(0.1),
+          borderRadius: BorderRadius.circular(12),
+        ),
+        child: Column(
+          children: [
+            Text(
+              count,
+              style: TextStyle(
+                fontSize: 20,
+                fontWeight: FontWeight.bold,
+                color: color,
+              ),
             ),
-          ),
-          const SizedBox(height: 4),
-          Text(
-            title,
-            style: TextStyle(fontSize: 12, color: Colors.grey[600]),
-            textAlign: TextAlign.center,
-          ),
-        ],
+            const SizedBox(height: 4),
+            Text(
+              title,
+              style: TextStyle(fontSize: 12, color: Colors.grey[600]),
+              textAlign: TextAlign.center,
+            ),
+          ],
+        ),
       ),
     );
   }
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      decoration: const BoxDecoration(
-        gradient: LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          colors: [Color(0xFFDBEAFE), Color(0xFFE0E7FF)],
-        ),
-      ),
+    return Padding(
       padding: const EdgeInsets.all(16),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -268,31 +280,35 @@ class StudentDashboard extends StatelessWidget {
             children: [
               _buildStudentStatCard(
                 'Attendance',
-                '95.0%',
+                '0%',
                 '📊',
                 Colors.blue,
-                '12 present • 1 absent',
+                '0 present • 0 absent',
+                () => onNavigate('Attendance'),
               ),
               _buildStudentStatCard(
                 'Average Marks',
-                '87.5%',
+                '0%',
                 '⭐',
                 Colors.green,
-                '6 subjects',
+                '0 subjects',
+                () => onNavigate('Marks'),
               ),
               _buildStudentStatCard(
                 'Leaves',
-                '3',
+                '0',
                 '📅',
                 Colors.purple,
-                '1 pending',
+                '0 pending',
+                () => onNavigate('Leaves'),
               ),
               _buildStudentStatCard(
                 'Notices',
-                '5',
+                '0',
                 '📢',
                 Colors.orange,
-                '3 unread',
+                '0 unread',
+                () => onNavigate('Notice'),
               ),
             ],
           ),
@@ -332,15 +348,42 @@ class StudentDashboard extends StatelessWidget {
                         ),
                       ),
                       const SizedBox(height: 16),
-                      _buildQuickLink('Task Manager', '🎯', Colors.blue),
-                      _buildQuickLink('Assignments', '📝', Colors.green),
+                      _buildQuickLink(
+                        'Task Manager',
+                        '🎯',
+                        Colors.blue,
+                        () => onNavigate('Tasks'),
+                      ),
+                      _buildQuickLink(
+                        'Assignments',
+                        '📝',
+                        Colors.green,
+                        () => onNavigate('Assignments'),
+                      ),
                       _buildQuickLink(
                         'Academic Performance',
                         '📊',
                         Colors.purple,
+                        () => onNavigate('Marks'),
                       ),
-                      _buildQuickLink('Leave Management', '📅', Colors.orange),
-                      _buildQuickLink('My Documents', '📁', Colors.red),
+                      _buildQuickLink(
+                        'Leave Management',
+                        '📅',
+                        Colors.orange,
+                        () => onNavigate('Leaves'),
+                      ),
+                      _buildQuickLink(
+                        'My Documents',
+                        '📁',
+                        Colors.red,
+                        () => onNavigate('Documents'),
+                      ),
+                      _buildQuickLink(
+                        'Holiday Calendar',
+                        '📅',
+                        Colors.teal,
+                        () => onNavigate('Calendar'),
+                      ),
                     ],
                   ),
                 ),
@@ -378,7 +421,7 @@ class StudentDashboard extends StatelessWidget {
                               ),
                             ),
                             TextButton(
-                              onPressed: () {},
+                              onPressed: () => onNavigate('Notice'),
                               child: const Text(
                                 'View All',
                                 style: TextStyle(
@@ -422,7 +465,7 @@ class StudentDashboard extends StatelessWidget {
 
           const SizedBox(height: 32),
 
-          // Recent Activity Summary
+          // Recent Notices
           Container(
             padding: const EdgeInsets.all(24),
             decoration: BoxDecoration(
@@ -439,49 +482,35 @@ class StudentDashboard extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Text(
-                  'Recent Activity',
-                  style: TextStyle(
-                    fontSize: 20,
-                    fontWeight: FontWeight.bold,
-                    color: Colors.black87,
-                  ),
-                ),
-                const SizedBox(height: 16),
                 Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    Expanded(
-                      child: _buildActivitySummary(
-                        'Attendance Records',
-                        '24',
-                        Colors.blue,
+                    const Text(
+                      'Recent Notices',
+                      style: TextStyle(
+                        fontSize: 20,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.black87,
                       ),
                     ),
-                    const SizedBox(width: 16),
-                    Expanded(
-                      child: _buildActivitySummary(
-                        'Marks Entries',
-                        '18',
-                        Colors.green,
-                      ),
-                    ),
-                    const SizedBox(width: 16),
-                    Expanded(
-                      child: _buildActivitySummary(
-                        'Notices',
-                        '7',
-                        Colors.purple,
-                      ),
-                    ),
-                    const SizedBox(width: 16),
-                    Expanded(
-                      child: _buildActivitySummary(
-                        'Leave Applications',
-                        '4',
-                        Colors.orange,
+                    TextButton(
+                      onPressed: () => onNavigate('Notice'),
+                      child: const Text(
+                        'View All',
+                        style: TextStyle(
+                          color: Colors.blue,
+                          fontWeight: FontWeight.w500,
+                        ),
                       ),
                     ),
                   ],
+                ),
+                const SizedBox(height: 16),
+                const Center(
+                  child: Text(
+                    'No recent notices',
+                    style: TextStyle(fontSize: 16, color: Colors.grey),
+                  ),
                 ),
               ],
             ),

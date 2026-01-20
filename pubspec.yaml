@@ -41,6 +41,28 @@ dependencies:
   # Shared preferences for persistent storage
   shared_preferences: ^2.3.2
 
+  # Internationalization package for date formatting
+  intl: ^0.19.0
+
+  # Table calendar for full calendar view
+  table_calendar: ^3.1.2
+
+  # File picker for selecting files
+  file_picker: ^8.1.2
+
+  # Image picker for selecting images
+  image_picker: ^1.1.2
+
+  # URL launcher for opening external URLs
+  url_launcher: ^6.3.0
+
+  # PDF generation and printing
+  pdf: ^3.10.7
+  printing: ^5.13.3
+
+  # Percent indicator for circular progress indicators
+  percent_indicator: ^4.2.3
+
 dev_dependencies:
   flutter_test:
     sdk: flutter

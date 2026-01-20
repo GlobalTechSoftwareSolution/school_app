@@ -4,6 +4,22 @@ import 'dart:convert';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'login_page.dart';
 import 'screens/student/student_dashboard.dart';
+import 'screens/student/attendance_page.dart';
+import 'screens/student/student_marks_page.dart';
+import 'screens/student/student_assignments_page.dart';
+import 'screens/student/student_tasks_page.dart';
+import 'screens/student/student_online_test_page.dart';
+import 'screens/components/google_calendar_page.dart';
+import 'screens/student/student_notice.dart';
+import 'screens/student/student_programs.dart';
+import 'screens/student/student_reports.dart';
+import 'screens/student/student_leaves.dart';
+import 'screens/student/student_raise_issue.dart';
+import 'screens/student/student_timetable.dart';
+import 'screens/student/student_documents_page.dart';
+import 'screens/student/student_fees_page.dart';
+import 'screens/student/student_id.dart';
+import 'screens/student/student_profile.dart';
 import 'screens/teacher/teacher_dashboard.dart';
 import 'screens/admin/admin_dashboard.dart';
 import 'screens/management/management_dashboard.dart';
@@ -51,6 +67,7 @@ class _DashboardPageState extends State<DashboardPage> {
             {'name': 'Programs', 'path': 'programs'},
             {'name': 'Reports', 'path': 'reports'},
             {'name': 'Leaves', 'path': 'leaves'},
+            {'name': 'Raise Issue', 'path': 'raise_issue'},
             {'name': 'TimeTable', 'path': 'timetable'},
             {'name': 'Documents', 'path': 'documents'},
             {'name': 'Fees', 'path': 'fees'},
@@ -359,6 +376,8 @@ class _DashboardPageState extends State<DashboardPage> {
         return Icons.bar_chart;
       case 'leaves':
         return Icons.beach_access;
+      case 'raise_issue':
+        return Icons.report_problem;
       case 'timetable':
         return Icons.schedule;
       case 'documents':
@@ -502,8 +521,56 @@ class _DashboardPageState extends State<DashboardPage> {
     switch (_selectedMenuItem.toLowerCase()) {
       case 'dashboard':
         return _getRoleBasedDashboard();
+      case 'attendance':
+        return AttendancePage(
+          userEmail: widget.userEmail,
+          userRole: widget.userRole,
+        );
+      case 'marks':
+        return StudentMarksPage(
+          userEmail: widget.userEmail,
+          userRole: widget.userRole,
+        );
+      case 'assignments':
+        return StudentAssignmentsPage(
+          userEmail: widget.userEmail,
+          userRole: widget.userRole,
+        );
+      case 'tasks':
+        return StudentTasksPage(
+          userEmail: widget.userEmail,
+          userRole: widget.userRole,
+        );
+      case 'online test':
+        return StudentOnlineTestPage(
+          userEmail: widget.userEmail,
+          userRole: widget.userRole,
+        );
+      case 'calendar':
+        return const GoogleCalendarPage();
+      case 'notice':
+        return StudentNoticePage(
+          userEmail: widget.userEmail,
+          userRole: widget.userRole,
+        );
+      case 'programs':
+        return const StudentProgramsPage();
+      case 'reports':
+        return const StudentReportsPage();
+      case 'leaves':
+        return const StudentLeavesPage();
+      case 'raise issue':
+        return const StudentRaiseIssuePage();
+      case 'timetable':
+        return const StudentTimetablePage();
+      case 'documents':
+        return const StudentDocumentsPage();
+      case 'fees':
+        return const StudentFeesPage();
+      case 'id card':
+        return const StudentIdPage();
       case 'profile':
-        return _buildProfileContent();
+        return const StudentProfilePage();
       default:
         return Container(
           height: 400,
@@ -551,7 +618,13 @@ class _DashboardPageState extends State<DashboardPage> {
   Widget _getRoleBasedDashboard() {
     final role = widget.userRole.toLowerCase();
     if (role == 'student' || role == 'students') {
-      return const StudentDashboard();
+      return StudentDashboard(
+        onNavigate: (page) {
+          setState(() {
+            _selectedMenuItem = page;
+          });
+        },
+      );
     } else if (role == 'teacher' || role == 'teachers') {
       return const TeacherDashboard();
     } else if (role == 'admin') {
