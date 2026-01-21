@@ -51,16 +51,25 @@ class _LoginPageState extends State<LoginPage> {
       return;
     }
 
+    print('🚀 LOGIN: Starting login process...');
+    print('📧 Email: $email');
+    print('🎭 Role: $role');
+
     setState(() => loading = true);
 
     try {
-      // STEP 1: Get JWT token and user data from token endpoint
+      // STEP 1: Login and get user data from login endpoint
       final formattedRole =
           role.substring(0, 1).toUpperCase() + role.substring(1).toLowerCase();
 
-      final tokenRes = await http.post(
+      print('📤 Sending request to /api/login/');
+      print(
+        '📦 Request body: ${jsonEncode({'email': email, 'password': '****', 'role': formattedRole})}',
+      );
+
+      final loginRes = await http.post(
         Uri.parse(
-          'https://school.globaltechsoftwaresolutions.cloud/api/token/',
+          'https://school.globaltechsoftwaresolutions.cloud/api/login/',
         ),
         headers: {'Content-Type': 'application/json'},
         body: jsonEncode({
@@ -70,14 +79,19 @@ class _LoginPageState extends State<LoginPage> {
         }),
       );
 
-      if (tokenRes.statusCode < 200 || tokenRes.statusCode >= 300) {
+      print('📥 Response received!');
+      print('📊 Status Code: ${loginRes.statusCode}');
+      print('📄 Response Body: ${loginRes.body}');
+
+      if (loginRes.statusCode < 200 || loginRes.statusCode >= 300) {
+        print('❌ Login failed with status code: ${loginRes.statusCode}');
         setState(() => loading = false);
-        if (tokenRes.statusCode == 401) {
+        if (loginRes.statusCode == 401) {
           showDialogMessage(
             "Invalid Credentials",
             "Invalid email or password.",
           );
-        } else if (tokenRes.statusCode == 400) {
+        } else if (loginRes.statusCode == 400) {
           showDialogMessage(
             "Invalid Input",
             "Please check your email, password or role.",
@@ -88,38 +102,60 @@ class _LoginPageState extends State<LoginPage> {
         return;
       }
 
-      final tokenData = jsonDecode(tokenRes.body);
+      print('✅ Login successful! Parsing response...');
+      final responseData = jsonDecode(loginRes.body);
+      print('🔍 Response Data: $responseData');
 
-      // Store the tokens
-      // Note: In Flutter, we use shared_preferences instead of localStorage
-      // For now, we'll just simulate the storage
+      // Extract user data from response
+      final userData = responseData['user'] ?? {};
+      print('👤 User Data: $userData');
 
-      // ✅ Directly handle login with token data (no extra /login call)
-      final userData = {
-        'email': tokenData['email'],
-        'role': tokenData['role'],
-        'is_active': tokenData['is_active'],
-        'is_approved': tokenData['is_approved'],
+      // Build user info object
+      final userInfo = {
+        'email': userData['email'] ?? email,
+        'role': userData['role'] ?? formattedRole,
+        'is_active': userData['is_active'] ?? true,
+        'is_approved': userData['is_approved'] ?? true,
       };
+      print('📋 User Info: $userInfo');
 
-      await handleSuccessfulLogin(userData);
-    } catch (error) {
+      print('🎯 Calling handleSuccessfulLogin...');
+      await handleSuccessfulLogin(userInfo);
+    } catch (error, stackTrace) {
+      print('💥 ERROR in login:');
+      print('Error: $error');
+      print('StackTrace: $stackTrace');
       setState(() => loading = false);
-      showDialogMessage(
-        "Network Error",
-        "Please check your internet connection and try again.",
-      );
+
+      // More specific error message
+      String errorMessage =
+          "Please check your internet connection and try again.";
+      if (error.toString().contains('Failed host lookup') ||
+          error.toString().contains('SocketException')) {
+        errorMessage =
+            "Cannot connect to server. Please check:\n"
+            "1. Your internet connection\n"
+            "2. Try restarting the emulator\n"
+            "3. Or test on a real device";
+      }
+
+      showDialogMessage("Network Error", errorMessage);
     }
   }
 
   Future<void> handleSuccessfulLogin(Map<String, dynamic> userData) async {
+    print('🔐 handleSuccessfulLogin called with userData: $userData');
+
     // Validate that user has the expected role or is approved
     if (userData['role'] == null) {
+      print('⚠️ Role is null, setting to: $role');
       userData['role'] = role;
     }
 
+    print('✓ Checking user active status: ${userData['is_active']}');
     // Check if user is approved/has access
     if (userData['is_active'] == false) {
+      print('❌ Account is inactive');
       showDialogMessage(
         "Account Inactive",
         "Your account is inactive. Please contact administrator.",
@@ -128,7 +164,9 @@ class _LoginPageState extends State<LoginPage> {
       return;
     }
 
+    print('✓ Checking user approval status: ${userData['is_approved']}');
     if (userData['is_approved'] == false) {
+      print('❌ Account is not approved');
       showDialogMessage(
         "Approval Pending",
         "Your account is pending approval. Please contact administrator.",
@@ -137,8 +175,10 @@ class _LoginPageState extends State<LoginPage> {
       return;
     }
 
+    print('✓ Checking role match: ${userData['role']} vs $role');
     // Check if role matches (case-insensitive)
     if (userData['role'].toString().toLowerCase() != role.toLowerCase()) {
+      print('❌ Role mismatch: ${userData['role']} != $role');
       showDialogMessage(
         "Role Mismatch",
         "Your account is registered as ${userData['role']}. Please select the correct role.",
@@ -146,6 +186,8 @@ class _LoginPageState extends State<LoginPage> {
       setState(() => loading = false);
       return;
     }
+
+    print('✅ All validations passed!');
 
     // Store user info
     final userInfo = {
@@ -161,8 +203,10 @@ class _LoginPageState extends State<LoginPage> {
               ? userData['email'].toString().split('@')[0]
               : email.split('@')[0])), // better name extraction
     };
+    print('💾 Prepared userInfo: $userInfo');
 
     // Save user session to persistent storage
+    print('� Saving to SharedPreferences...');
     final prefs = await SharedPreferences.getInstance();
     await prefs.setString('user_email', userInfo['email'] ?? email);
     await prefs.setString('user_role', userInfo['role'] ?? role);
@@ -173,11 +217,13 @@ class _LoginPageState extends State<LoginPage> {
     await prefs.setBool('user_active', userInfo['is_active'] ?? true);
     await prefs.setBool('user_approved', userInfo['is_approved'] ?? true);
     await prefs.setBool('is_logged_in', true);
+    print('✅ Saved to SharedPreferences');
 
     setState(() => loading = false);
 
     // Redirect based on verified role
     final userRole = (userInfo['role'] ?? '').toString().toLowerCase();
+    print('🚪 Navigating to dashboard with role: $userRole');
 
     // Navigate to dashboard
     Navigator.of(context).pushReplacement(
@@ -189,6 +235,7 @@ class _LoginPageState extends State<LoginPage> {
         ),
       ),
     );
+    print('✅ Navigation completed!');
   }
 
   @override

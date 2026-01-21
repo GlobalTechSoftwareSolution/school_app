@@ -328,9 +328,10 @@ class _DashboardPageState extends State<DashboardPage> {
             ),
           ),
 
-          // Logout button
+          // Logout button with additional bottom padding and margin
           Container(
-            padding: const EdgeInsets.all(16),
+            padding: const EdgeInsets.fromLTRB(16, 16, 16, 32),
+            margin: const EdgeInsets.only(bottom: 20),
             child: ElevatedButton.icon(
               onPressed: _showLogoutDialog,
               icon: const Icon(Icons.logout, color: Colors.white),
