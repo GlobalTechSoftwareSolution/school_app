@@ -51,21 +51,12 @@ class _LoginPageState extends State<LoginPage> {
       return;
     }
 
-    print('🚀 LOGIN: Starting login process...');
-    print('📧 Email: $email');
-    print('🎭 Role: $role');
-
     setState(() => loading = true);
 
     try {
       // STEP 1: Login and get user data from login endpoint
       final formattedRole =
           role.substring(0, 1).toUpperCase() + role.substring(1).toLowerCase();
-
-      print('📤 Sending request to /api/login/');
-      print(
-        '📦 Request body: ${jsonEncode({'email': email, 'password': '****', 'role': formattedRole})}',
-      );
 
       final loginRes = await http.post(
         Uri.parse(
@@ -79,12 +70,7 @@ class _LoginPageState extends State<LoginPage> {
         }),
       );
 
-      print('📥 Response received!');
-      print('📊 Status Code: ${loginRes.statusCode}');
-      print('📄 Response Body: ${loginRes.body}');
-
       if (loginRes.statusCode < 200 || loginRes.statusCode >= 300) {
-        print('❌ Login failed with status code: ${loginRes.statusCode}');
         setState(() => loading = false);
         if (loginRes.statusCode == 401) {
           showDialogMessage(
@@ -102,13 +88,10 @@ class _LoginPageState extends State<LoginPage> {
         return;
       }
 
-      print('✅ Login successful! Parsing response...');
       final responseData = jsonDecode(loginRes.body);
-      print('🔍 Response Data: $responseData');
 
       // Extract user data from response
       final userData = responseData['user'] ?? {};
-      print('👤 User Data: $userData');
 
       // Build user info object
       final userInfo = {
@@ -117,14 +100,9 @@ class _LoginPageState extends State<LoginPage> {
         'is_active': userData['is_active'] ?? true,
         'is_approved': userData['is_approved'] ?? true,
       };
-      print('📋 User Info: $userInfo');
 
-      print('🎯 Calling handleSuccessfulLogin...');
       await handleSuccessfulLogin(userInfo);
     } catch (error, stackTrace) {
-      print('💥 ERROR in login:');
-      print('Error: $error');
-      print('StackTrace: $stackTrace');
       setState(() => loading = false);
 
       // More specific error message
@@ -144,18 +122,13 @@ class _LoginPageState extends State<LoginPage> {
   }
 
   Future<void> handleSuccessfulLogin(Map<String, dynamic> userData) async {
-    print('🔐 handleSuccessfulLogin called with userData: $userData');
-
     // Validate that user has the expected role or is approved
     if (userData['role'] == null) {
-      print('⚠️ Role is null, setting to: $role');
       userData['role'] = role;
     }
 
-    print('✓ Checking user active status: ${userData['is_active']}');
     // Check if user is approved/has access
     if (userData['is_active'] == false) {
-      print('❌ Account is inactive');
       showDialogMessage(
         "Account Inactive",
         "Your account is inactive. Please contact administrator.",
@@ -164,9 +137,7 @@ class _LoginPageState extends State<LoginPage> {
       return;
     }
 
-    print('✓ Checking user approval status: ${userData['is_approved']}');
     if (userData['is_approved'] == false) {
-      print('❌ Account is not approved');
       showDialogMessage(
         "Approval Pending",
         "Your account is pending approval. Please contact administrator.",
@@ -175,10 +146,8 @@ class _LoginPageState extends State<LoginPage> {
       return;
     }
 
-    print('✓ Checking role match: ${userData['role']} vs $role');
     // Check if role matches (case-insensitive)
     if (userData['role'].toString().toLowerCase() != role.toLowerCase()) {
-      print('❌ Role mismatch: ${userData['role']} != $role');
       showDialogMessage(
         "Role Mismatch",
         "Your account is registered as ${userData['role']}. Please select the correct role.",
@@ -186,8 +155,6 @@ class _LoginPageState extends State<LoginPage> {
       setState(() => loading = false);
       return;
     }
-
-    print('✅ All validations passed!');
 
     // Store user info
     final userInfo = {
@@ -203,10 +170,8 @@ class _LoginPageState extends State<LoginPage> {
               ? userData['email'].toString().split('@')[0]
               : email.split('@')[0])), // better name extraction
     };
-    print('💾 Prepared userInfo: $userInfo');
 
     // Save user session to persistent storage
-    print('� Saving to SharedPreferences...');
     final prefs = await SharedPreferences.getInstance();
     await prefs.setString('user_email', userInfo['email'] ?? email);
     await prefs.setString('user_role', userInfo['role'] ?? role);
@@ -217,13 +182,11 @@ class _LoginPageState extends State<LoginPage> {
     await prefs.setBool('user_active', userInfo['is_active'] ?? true);
     await prefs.setBool('user_approved', userInfo['is_approved'] ?? true);
     await prefs.setBool('is_logged_in', true);
-    print('✅ Saved to SharedPreferences');
 
     setState(() => loading = false);
 
     // Redirect based on verified role
     final userRole = (userInfo['role'] ?? '').toString().toLowerCase();
-    print('🚪 Navigating to dashboard with role: $userRole');
 
     // Navigate to dashboard
     Navigator.of(context).pushReplacement(
@@ -235,7 +198,6 @@ class _LoginPageState extends State<LoginPage> {
         ),
       ),
     );
-    print('✅ Navigation completed!');
   }
 
   @override
