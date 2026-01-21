@@ -22,6 +22,7 @@ import 'screens/student/student_id.dart';
 import 'screens/student/student_profile.dart';
 import 'screens/teacher/teacher_dashboard.dart';
 import 'screens/admin/admin_dashboard.dart';
+import 'screens/admin/admin_attendance_page.dart';
 import 'screens/management/management_dashboard.dart';
 import 'screens/principal/principal_dashboard.dart';
 import 'screens/parent/parent_dashboard.dart';
@@ -523,10 +524,14 @@ class _DashboardPageState extends State<DashboardPage> {
       case 'dashboard':
         return _getRoleBasedDashboard();
       case 'attendance':
-        return AttendancePage(
-          userEmail: widget.userEmail,
-          userRole: widget.userRole,
-        );
+        if (widget.userRole.toLowerCase() == 'admin') {
+          return const AdminAttendancePage();
+        } else {
+          return AttendancePage(
+            userEmail: widget.userEmail,
+            userRole: widget.userRole,
+          );
+        }
       case 'marks':
         return StudentMarksPage(
           userEmail: widget.userEmail,

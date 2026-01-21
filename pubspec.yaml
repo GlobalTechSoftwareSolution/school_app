@@ -63,6 +63,9 @@ dependencies:
   # Percent indicator for circular progress indicators
   percent_indicator: ^4.2.3
 
+  # Charts for data visualization
+  fl_chart: ^0.68.0
+
 dev_dependencies:
   flutter_test:
     sdk: flutter
