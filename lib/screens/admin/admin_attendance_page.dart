@@ -267,7 +267,7 @@ class _AdminAttendancePageState extends State<AdminAttendancePage> {
   List<ClassData> classes = [];
   List<AttendanceRecord> attendance = [];
   List<StudentAttendanceRecord> studentAttendance = [];
-  String selectedClassId = "";
+  String? selectedClassId;
   bool loading = true;
   String mode = "students";
   late String adminEmail;
@@ -404,8 +404,8 @@ class _AdminAttendancePageState extends State<AdminAttendancePage> {
   }
 
   List<MergedAttendanceRecord> get filteredStudentAttendance {
-    if (selectedClassId.isEmpty) return [];
-    final classId = int.tryParse(selectedClassId);
+    if (selectedClassId == null || selectedClassId!.isEmpty) return [];
+    final classId = int.tryParse(selectedClassId!);
     return getMergedAttendance().where((i) => i.classId == classId).toList();
   }
 
@@ -479,106 +479,92 @@ class _AdminAttendancePageState extends State<AdminAttendancePage> {
   @override
   Widget build(BuildContext context) {
     if (loading) {
-      return const Scaffold(body: Center(child: CircularProgressIndicator()));
+      return const Center(child: CircularProgressIndicator());
     }
 
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text('Attendance Management'),
-        backgroundColor: Colors.blue,
-        foregroundColor: Colors.white,
-      ),
-      body: Padding(
-        padding: const EdgeInsets.all(16.0),
-        child: Column(
-          children: [
-            // Header with date picker
-            Row(
-              children: [
-                const Text(
-                  'Select Date:',
-                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.w500),
-                ),
-                const SizedBox(width: 16),
-                Flexible(
-                  child: InkWell(
-                    onTap: () async {
-                      final picked = await showDatePicker(
-                        context: context,
-                        initialDate: selectedDate,
-                        firstDate: DateTime(2020),
-                        lastDate: DateTime.now(),
-                      );
-                      if (picked != null) {
-                        setState(() => selectedDate = picked);
-                      }
-                    },
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 12,
-                        vertical: 8,
-                      ),
-                      decoration: BoxDecoration(
-                        border: Border.all(color: Colors.grey),
-                        borderRadius: BorderRadius.circular(8),
-                      ),
-                      child: Text(
-                        DateFormat('yyyy-MM-dd').format(selectedDate),
-                        style: const TextStyle(fontSize: 16),
-                      ),
+    return Padding(
+      padding: const EdgeInsets.all(16.0),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          // Header with date picker
+          Row(
+            children: [
+              const Text(
+                'Select Date:',
+                style: TextStyle(fontSize: 16, fontWeight: FontWeight.w500),
+              ),
+              const SizedBox(width: 16),
+              Flexible(
+                child: InkWell(
+                  onTap: () async {
+                    final picked = await showDatePicker(
+                      context: context,
+                      initialDate: selectedDate,
+                      firstDate: DateTime(2020),
+                      lastDate: DateTime.now(),
+                    );
+                    if (picked != null) {
+                      setState(() => selectedDate = picked);
+                    }
+                  },
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 12,
+                      vertical: 8,
+                    ),
+                    decoration: BoxDecoration(
+                      border: Border.all(color: Colors.grey),
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: Text(
+                      DateFormat('yyyy-MM-dd').format(selectedDate),
+                      style: const TextStyle(fontSize: 16),
                     ),
                   ),
                 ),
-              ],
-            ),
-            const SizedBox(height: 16),
-
-            // Mode Selection Cards
-            Row(
-              children: [
-                _buildModeCard(
-                  'students',
-                  'Students',
-                  Icons.school,
-                  Colors.blue,
-                ),
-                const SizedBox(width: 8),
-                _buildModeCard(
-                  'teachers',
-                  'Teachers',
-                  Icons.person,
-                  Colors.green,
-                ),
-                const SizedBox(width: 8),
-                _buildModeCard(
-                  'principal',
-                  'Principal',
-                  Icons.account_circle,
-                  Colors.purple,
-                ),
-                const SizedBox(width: 8),
-                _buildModeCard(
-                  'admin',
-                  'Admin',
-                  Icons.admin_panel_settings,
-                  Colors.orange,
-                ),
-              ],
-            ),
-            const SizedBox(height: 16),
-
-            // Content Area - Wrapped in Expanded to constrain height
-            Expanded(
-              child: Card(
-                elevation: 4,
-                child: Padding(
-                  padding: const EdgeInsets.all(16.0),
-                  child: _buildContent(),
-                ),
               ),
+            ],
+          ),
+          const SizedBox(height: 16),
+
+          // Mode Selection Cards
+          Wrap(
+            spacing: 8.0,
+            runSpacing: 8.0,
+            children: [
+              _buildModeCard('students', 'Students', Icons.school, Colors.blue),
+              _buildModeCard(
+                'teachers',
+                'Teachers',
+                Icons.person,
+                Colors.green,
+              ),
+              _buildModeCard(
+                'principal',
+                'Principal',
+                Icons.account_circle,
+                Colors.purple,
+              ),
+              _buildModeCard(
+                'admin',
+                'Admin',
+                Icons.admin_panel_settings,
+                Colors.orange,
+              ),
+            ],
+          ),
+          const SizedBox(height: 16),
+
+          // Content Area
+          Card(
+            elevation: 4,
+            child: Padding(
+              padding: const EdgeInsets.all(16.0),
+              child: _buildContent(),
             ),
-          ],
-        ),
+          ),
+        ],
       ),
     );
   }
@@ -587,41 +573,41 @@ class _AdminAttendancePageState extends State<AdminAttendancePage> {
     final isSelected = mode == key;
     final recordCount = _getRecordCount(key);
 
-    return Flexible(
-      child: InkWell(
-        onTap: () => setState(() => mode = key),
-        child: Card(
-          color: isSelected ? color.withOpacity(0.1) : Colors.white,
-          elevation: isSelected ? 8 : 2,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(12),
-            side: BorderSide(
-              color: isSelected ? color : Colors.grey.shade300,
-              width: isSelected ? 2 : 1,
-            ),
+    return InkWell(
+      onTap: () => setState(() => mode = key),
+      splashColor: Colors.transparent,
+      highlightColor: Colors.transparent,
+      child: Card(
+        color: isSelected ? color.withOpacity(0.1) : Colors.white,
+        elevation: isSelected ? 8 : 2,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(12),
+          side: BorderSide(
+            color: isSelected ? color : Colors.grey.shade300,
+            width: isSelected ? 2 : 1,
           ),
-          child: Padding(
-            padding: const EdgeInsets.all(12.0),
-            child: Column(
-              children: [
-                Icon(icon, size: 32, color: isSelected ? color : Colors.grey),
-                const SizedBox(height: 4),
-                Text(
-                  label,
-                  style: TextStyle(
-                    fontWeight: FontWeight.bold,
-                    color: isSelected ? color : Colors.black,
-                  ),
+        ),
+        child: Padding(
+          padding: const EdgeInsets.all(12.0),
+          child: Column(
+            children: [
+              Icon(icon, size: 32, color: isSelected ? color : Colors.grey),
+              const SizedBox(height: 4),
+              Text(
+                label,
+                style: TextStyle(
+                  fontWeight: FontWeight.bold,
+                  color: isSelected ? color : Colors.black,
                 ),
-                Text(
-                  '$recordCount records',
-                  style: TextStyle(
-                    fontSize: 12,
-                    color: isSelected ? color : Colors.grey,
-                  ),
+              ),
+              Text(
+                '$recordCount records',
+                style: TextStyle(
+                  fontSize: 12,
+                  color: isSelected ? color : Colors.grey,
                 ),
-              ],
-            ),
+              ),
+            ],
           ),
         ),
       ),
@@ -631,7 +617,7 @@ class _AdminAttendancePageState extends State<AdminAttendancePage> {
   int _getRecordCount(String key) {
     switch (key) {
       case 'students':
-        return filteredStudentAttendance.length;
+        return getMergedAttendance().length;
       case 'teachers':
         return teacherAttendance.length;
       case 'principal':
@@ -661,40 +647,20 @@ class _AdminAttendancePageState extends State<AdminAttendancePage> {
   Widget _buildStudentsContent() {
     return SingleChildScrollView(
       child: Column(
+        mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           const Text(
             'Student Attendance',
             style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
           ),
-          const SizedBox(height: 8),
-          const Text('Select a class to view student attendance records'),
-          const SizedBox(height: 16),
-
-          // Class Selector
-          DropdownButtonFormField<String>(
-            value: selectedClassId.isEmpty ? null : selectedClassId,
-            decoration: const InputDecoration(
-              labelText: 'Select Class',
-              border: OutlineInputBorder(),
-            ),
-            items: classes.map((cls) {
-              return DropdownMenuItem<String>(
-                value: cls.id.toString(),
-                child: Text('${cls.className} - ${cls.sec ?? 'N/A'}'),
-              );
-            }).toList(),
-            onChanged: (value) => setState(() => selectedClassId = value ?? ''),
-          ),
           const SizedBox(height: 16),
 
           // Attendance List
-          selectedClassId.isEmpty
-              ? const Center(child: Text('Please select a class'))
-              : filteredStudentAttendance.isEmpty
+          getMergedAttendance().isEmpty
               ? const Center(child: Text('No attendance records found'))
               : _buildAttendanceTable(
-                  filteredStudentAttendance,
+                  getMergedAttendance(),
                   includeClass: true,
                 ),
         ],
@@ -705,6 +671,7 @@ class _AdminAttendancePageState extends State<AdminAttendancePage> {
   Widget _buildTeachersContent() {
     return SingleChildScrollView(
       child: Column(
+        mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           const Text(
@@ -725,6 +692,7 @@ class _AdminAttendancePageState extends State<AdminAttendancePage> {
   Widget _buildPrincipalContent() {
     return SingleChildScrollView(
       child: Column(
+        mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           const Text(
@@ -747,6 +715,7 @@ class _AdminAttendancePageState extends State<AdminAttendancePage> {
   Widget _buildAdminContent() {
     return SingleChildScrollView(
       child: Column(
+        mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(

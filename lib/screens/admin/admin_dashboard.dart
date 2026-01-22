@@ -9,6 +9,9 @@ import '../student/student_profile.dart' as student_profile;
 import '../teacher/teacher_dashboard.dart';
 import '../student/student_reports.dart';
 import 'admin_attendance_page.dart';
+import 'admin_notice_page.dart';
+import 'admin_programs_page.dart';
+import 'admin_reports_page.dart';
 
 class AdminDashboard extends StatefulWidget {
   const AdminDashboard({super.key});
@@ -714,6 +717,45 @@ class _AdminDashboardState extends State<AdminDashboard> {
                 context,
                 MaterialPageRoute(
                   builder: (context) => const StudentReportsPage(),
+                ),
+              );
+            },
+          ),
+          _buildQuickAction(
+            '📢',
+            'Manage Notices',
+            'Create and manage system notices',
+            () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => const AdminNoticePage(),
+                ),
+              );
+            },
+          ),
+          _buildQuickAction(
+            '🎯',
+            'Manage Programs',
+            'Create and manage school programs',
+            () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => const AdminProgramsPage(),
+                ),
+              );
+            },
+          ),
+          _buildQuickAction(
+            '📊',
+            'Manage Reports',
+            'Generate and view system reports',
+            () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => const AdminReportsPage(),
                 ),
               );
             },

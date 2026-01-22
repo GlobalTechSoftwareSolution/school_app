@@ -90,7 +90,11 @@ class _LoginPageState extends State<LoginPage> {
 
       final responseData = jsonDecode(loginRes.body);
 
-      // Extract user data from response
+      // Extract token and user data from response
+      final token =
+          responseData['access'] ??
+          responseData['token'] ??
+          responseData['access_token'];
       final userData = responseData['user'] ?? {};
 
       // Build user info object
@@ -99,6 +103,7 @@ class _LoginPageState extends State<LoginPage> {
         'role': userData['role'] ?? formattedRole,
         'is_active': userData['is_active'] ?? true,
         'is_approved': userData['is_approved'] ?? true,
+        'token': token, // Store token for API calls
       };
 
       await handleSuccessfulLogin(userInfo);
@@ -182,6 +187,11 @@ class _LoginPageState extends State<LoginPage> {
     await prefs.setBool('user_active', userInfo['is_active'] ?? true);
     await prefs.setBool('user_approved', userInfo['is_approved'] ?? true);
     await prefs.setBool('is_logged_in', true);
+
+    // Store access token for API authentication
+    if (userInfo['token'] != null) {
+      await prefs.setString('accessToken', userInfo['token']);
+    }
 
     setState(() => loading = false);
 

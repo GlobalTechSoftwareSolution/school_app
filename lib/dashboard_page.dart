@@ -23,6 +23,13 @@ import 'screens/student/student_profile.dart';
 import 'screens/teacher/teacher_dashboard.dart';
 import 'screens/admin/admin_dashboard.dart';
 import 'screens/admin/admin_attendance_page.dart';
+import 'screens/admin/admin_students_page.dart';
+import 'screens/admin/admin_teachers_page.dart';
+import 'screens/admin/admin_approval_page.dart';
+import 'screens/admin/admin_calendar_page.dart';
+import 'screens/admin/admin_notice_page.dart';
+import 'screens/admin/admin_programs_page.dart';
+import 'screens/admin/admin_reports_page.dart';
 import 'screens/management/management_dashboard.dart';
 import 'screens/principal/principal_dashboard.dart';
 import 'screens/parent/parent_dashboard.dart';
@@ -394,6 +401,8 @@ class _DashboardPageState extends State<DashboardPage> {
         return Icons.school;
       case 'teachers':
         return Icons.person_3;
+      case 'approvals':
+        return Icons.check_circle_outline;
       case 'projects':
         return Icons.work;
       case 'finance':
@@ -532,6 +541,27 @@ class _DashboardPageState extends State<DashboardPage> {
             userRole: widget.userRole,
           );
         }
+      case 'students':
+        if (widget.userRole.toLowerCase() == 'admin') {
+          return const AdminStudents();
+        } else {
+          // Handle for other roles if needed
+          return Container();
+        }
+      case 'teachers':
+        if (widget.userRole.toLowerCase() == 'admin') {
+          return const AdminTeachersPage();
+        } else {
+          // Handle for other roles if needed
+          return Container();
+        }
+      case 'approvals':
+        if (widget.userRole.toLowerCase() == 'admin') {
+          return const AdminApprovalPage();
+        } else {
+          // Handle for other roles if needed
+          return Container();
+        }
       case 'marks':
         return StudentMarksPage(
           userEmail: widget.userEmail,
@@ -553,16 +583,32 @@ class _DashboardPageState extends State<DashboardPage> {
           userRole: widget.userRole,
         );
       case 'calendar':
-        return const GoogleCalendarPage();
+        if (widget.userRole.toLowerCase() == 'admin') {
+          return const AdminCalendarPage();
+        } else {
+          return const GoogleCalendarPage();
+        }
       case 'notice':
-        return StudentNoticePage(
-          userEmail: widget.userEmail,
-          userRole: widget.userRole,
-        );
+        if (widget.userRole.toLowerCase() == 'admin') {
+          return const AdminNoticePage();
+        } else {
+          return StudentNoticePage(
+            userEmail: widget.userEmail,
+            userRole: widget.userRole,
+          );
+        }
       case 'programs':
-        return const StudentProgramsPage();
+        if (widget.userRole.toLowerCase() == 'admin') {
+          return const AdminProgramsPage();
+        } else {
+          return const StudentProgramsPage();
+        }
       case 'reports':
-        return const StudentReportsPage();
+        if (widget.userRole.toLowerCase() == 'admin') {
+          return const AdminReportsPage();
+        } else {
+          return const StudentReportsPage();
+        }
       case 'leaves':
         return const StudentLeavesPage();
       case 'raise issue':
