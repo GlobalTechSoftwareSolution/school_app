@@ -21,6 +21,9 @@ import 'screens/student/student_fees_page.dart';
 import 'screens/student/student_id.dart';
 import 'screens/student/student_profile.dart';
 import 'screens/teacher/teacher_dashboard.dart';
+import 'screens/teacher/teacher_attendance_page.dart';
+import 'screens/teacher/teacher_marks_page.dart';
+import 'screens/teacher/teacher_assignments_page.dart';
 import 'screens/admin/admin_dashboard.dart';
 import 'screens/admin/admin_attendance_page.dart';
 import 'screens/admin/admin_students_page.dart';
@@ -541,6 +544,9 @@ class _DashboardPageState extends State<DashboardPage> {
       case 'attendance':
         if (widget.userRole.toLowerCase() == 'admin') {
           return const AdminAttendancePage();
+        } else if (widget.userRole.toLowerCase() == 'teacher' ||
+            widget.userRole.toLowerCase() == 'teachers') {
+          return const TeacherAttendancePage();
         } else {
           return AttendancePage(
             userEmail: widget.userEmail,
@@ -569,15 +575,25 @@ class _DashboardPageState extends State<DashboardPage> {
           return Container();
         }
       case 'marks':
-        return StudentMarksPage(
-          userEmail: widget.userEmail,
-          userRole: widget.userRole,
-        );
+        if (widget.userRole.toLowerCase() == 'teacher' ||
+            widget.userRole.toLowerCase() == 'teachers') {
+          return TeacherMarksPage();
+        } else {
+          return StudentMarksPage(
+            userEmail: widget.userEmail,
+            userRole: widget.userRole,
+          );
+        }
       case 'assignments':
-        return StudentAssignmentsPage(
-          userEmail: widget.userEmail,
-          userRole: widget.userRole,
-        );
+        if (widget.userRole.toLowerCase() == 'teacher' ||
+            widget.userRole.toLowerCase() == 'teachers') {
+          return const TeacherAssignmentsPage();
+        } else {
+          return StudentAssignmentsPage(
+            userEmail: widget.userEmail,
+            userRole: widget.userRole,
+          );
+        }
       case 'tasks':
         return StudentTasksPage(
           userEmail: widget.userEmail,
@@ -696,7 +712,13 @@ class _DashboardPageState extends State<DashboardPage> {
         },
       );
     } else if (role == 'teacher' || role == 'teachers') {
-      return const TeacherDashboard();
+      return TeacherDashboard(
+        onNavigate: (page) {
+          setState(() {
+            _selectedMenuItem = page;
+          });
+        },
+      );
     } else if (role == 'admin') {
       return const AdminDashboard();
     } else if (role == 'management') {
