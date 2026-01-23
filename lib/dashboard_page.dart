@@ -31,6 +31,7 @@ import 'screens/admin/admin_notice_page.dart';
 import 'screens/admin/admin_programs_page.dart';
 import 'screens/admin/admin_reports_page.dart';
 import 'screens/admin/admin_projects_page.dart';
+import 'screens/admin/admin_issues_page.dart';
 import 'screens/admin/admin_profile_page.dart';
 import 'screens/management/management_dashboard.dart';
 import 'screens/principal/principal_dashboard.dart';
@@ -120,6 +121,7 @@ class _DashboardPageState extends State<DashboardPage> {
             {'name': 'Programs', 'path': 'programs'},
             {'name': 'Reports', 'path': 'reports'},
             {'name': 'Projects', 'path': 'projects'},
+            {'name': 'Issues', 'path': 'issues'},
             {'name': 'ID Card', 'path': 'id_card'},
             {'name': 'Profile', 'path': 'profile'},
           ],
@@ -407,6 +409,8 @@ class _DashboardPageState extends State<DashboardPage> {
         return Icons.check_circle_outline;
       case 'projects':
         return Icons.work;
+      case 'issues':
+        return Icons.report_problem;
       case 'finance':
         return Icons.account_balance;
       default:
@@ -613,6 +617,12 @@ class _DashboardPageState extends State<DashboardPage> {
         }
       case 'projects':
         return const AdminProjectsPage();
+      case 'issues':
+        if (widget.userRole.toLowerCase() == 'admin') {
+          return const AdminIssuesPage();
+        } else {
+          return Container();
+        }
       case 'leaves':
         return const StudentLeavesPage();
       case 'raise issue':

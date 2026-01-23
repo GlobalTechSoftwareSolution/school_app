@@ -12,6 +12,7 @@ import 'admin_attendance_page.dart';
 import 'admin_notice_page.dart';
 import 'admin_programs_page.dart';
 import 'admin_reports_page.dart';
+import 'admin_issues_page.dart';
 import 'admin_profile_page.dart';
 
 class AdminDashboard extends StatefulWidget {
@@ -770,6 +771,19 @@ class _AdminDashboardState extends State<AdminDashboard> {
                 context,
                 MaterialPageRoute(
                   builder: (context) => const AdminReportsPage(),
+                ),
+              );
+            },
+          ),
+          _buildQuickAction(
+            '🎫',
+            'Manage Issues',
+            'Track and resolve system issues',
+            () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => const AdminIssuesPage(),
                 ),
               );
             },
