@@ -12,6 +12,7 @@ import 'admin_attendance_page.dart';
 import 'admin_notice_page.dart';
 import 'admin_programs_page.dart';
 import 'admin_reports_page.dart';
+import 'admin_profile_page.dart';
 
 class AdminDashboard extends StatefulWidget {
   const AdminDashboard({super.key});
@@ -668,6 +669,19 @@ class _AdminDashboardState extends State<AdminDashboard> {
             ),
           ),
           const SizedBox(height: 16),
+          _buildQuickAction(
+            '👤',
+            'My Profile',
+            'Manage your account settings',
+            () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => const AdminProfilePage(),
+                ),
+              );
+            },
+          ),
           _buildQuickAction(
             '📊',
             'View Attendance',

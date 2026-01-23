@@ -38,14 +38,14 @@ class IdCardRecord {
 
 class StudentRecord {
   final String email;
-  final String fullname;
+  final String? fullname;
   final String? className;
   final String? section;
   final int? classId;
 
   StudentRecord({
     required this.email,
-    required this.fullname,
+    this.fullname,
     this.className,
     this.section,
     this.classId,
@@ -54,7 +54,7 @@ class StudentRecord {
   factory StudentRecord.fromJson(Map<String, dynamic> json) {
     return StudentRecord(
       email: json['email'] ?? '',
-      fullname: json['fullname'] ?? '',
+      fullname: json['fullname'],
       className: json['class_name'],
       section: json['section'],
       classId: json['class_id'],
@@ -62,252 +62,92 @@ class StudentRecord {
   }
 }
 
-class IdCardForm extends StatefulWidget {
-  final Future<void> Function() onSubmit;
-  final VoidCallback onCancel;
-  final String defaultEmail;
-
-  const IdCardForm({
-    super.key,
-    required this.onSubmit,
-    required this.onCancel,
-    required this.defaultEmail,
-  });
+class IdCardComponent extends StatefulWidget {
+  const IdCardComponent({super.key});
 
   @override
-  State<IdCardForm> createState() => _IdCardFormState();
+  State<IdCardComponent> createState() => _IdCardComponentState();
 }
 
-class _IdCardFormState extends State<IdCardForm> {
-  bool submitting = false;
-  String error = '';
+class _IdCardComponentState extends State<IdCardComponent> {
+  final String apiBaseUrl =
+      'https://school.globaltechsoftwaresolutions.cloud/api';
 
-  Future<void> handleSubmit() async {
-    setState(() {
-      submitting = true;
-      error = '';
-    });
-
-    try {
-      await widget.onSubmit();
-    } catch (err) {
-      String errorMessage =
-          'Unable to generate ID card. The backend service may be experiencing issues. Please contact your administrator or try again later.';
-
-      if (err is http.ClientException) {
-        // Handle HTTP errors
-        errorMessage =
-            'Network error: Please check your connection and try again.';
-      } else if (err.toString().contains('S3Error')) {
-        errorMessage =
-            'Storage error: ID card generation is temporarily unavailable due to file storage issues. Please contact your administrator.';
-      } else if (err.toString().contains('500')) {
-        errorMessage =
-            'Server error: ID card generation service is temporarily unavailable. Please try again later.';
-      } else if (err.toString().contains('400')) {
-        errorMessage =
-            'Invalid request: Please check your information and try again.';
-      } else if (err.toString().contains('401')) {
-        errorMessage = 'Unauthorized: Please log in and try again.';
-      } else if (err.toString().contains('403')) {
-        errorMessage =
-            'Access denied: You do not have permission to generate ID cards.';
-      }
-
-      setState(() => error = errorMessage);
-    } finally {
-      setState(() => submitting = false);
-    }
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return Card(
-      elevation: 8,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-      child: Container(
-        padding: const EdgeInsets.all(24),
-        constraints: const BoxConstraints(maxWidth: 500),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            const Text(
-              'Generate Your ID Card',
-              style: TextStyle(
-                fontSize: 24,
-                fontWeight: FontWeight.bold,
-                color: Colors.black87,
-              ),
-            ),
-            const SizedBox(height: 8),
-            const Text(
-              'Click the button below to automatically generate your digital ID card for the logged-in account.',
-              style: TextStyle(fontSize: 16, color: Colors.grey),
-            ),
-            const SizedBox(height: 24),
-            TextFormField(
-              initialValue: widget.defaultEmail,
-              readOnly: true,
-              decoration: InputDecoration(
-                labelText: 'Email',
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                filled: true,
-                fillColor: Colors.grey[100],
-              ),
-            ),
-            if (error.isNotEmpty) ...[
-              const SizedBox(height: 16),
-              Container(
-                padding: const EdgeInsets.all(12),
-                decoration: BoxDecoration(
-                  color: Colors.red[50],
-                  border: Border.all(color: Colors.red[200]!),
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                child: Text(
-                  error,
-                  style: const TextStyle(color: Colors.red, fontSize: 14),
-                ),
-              ),
-            ],
-            const SizedBox(height: 24),
-            Row(
-              children: [
-                Expanded(
-                  child: ElevatedButton(
-                    onPressed: submitting ? null : handleSubmit,
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.purple,
-                      padding: const EdgeInsets.symmetric(vertical: 12),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                    ),
-                    child: Text(
-                      submitting ? 'Generating...' : 'Generate ID Card',
-                      style: const TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                  ),
-                ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: OutlinedButton(
-                    onPressed: submitting ? null : widget.onCancel,
-                    style: OutlinedButton.styleFrom(
-                      padding: const EdgeInsets.symmetric(vertical: 12),
-                      side: const BorderSide(color: Colors.grey),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                    ),
-                    child: const Text(
-                      'Cancel',
-                      style: TextStyle(fontSize: 16, color: Colors.grey),
-                    ),
-                  ),
-                ),
-              ],
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-class AllIdCards extends StatefulWidget {
-  const AllIdCards({super.key});
-
-  @override
-  State<AllIdCards> createState() => _AllIdCardsState();
-}
-
-class _AllIdCardsState extends State<AllIdCards> {
   List<IdCardRecord> idCards = [];
   List<StudentRecord> students = [];
-  bool loading = true;
+  bool isLoading = true;
   String error = '';
   bool showForm = false;
   String? previewUrl;
-  final ScrollController _scrollController = ScrollController();
-
   String userEmail = '';
   String userRole = 'Student';
 
   @override
   void initState() {
     super.initState();
+    loadUserInfo();
     fetchData();
-    fetchUserInfo();
   }
 
-  Future<void> fetchUserInfo() async {
+  Future<void> loadUserInfo() async {
     try {
       final prefs = await SharedPreferences.getInstance();
-      final email = prefs.getString('user_email') ?? '';
-      final role = prefs.getString('user_role') ?? 'Student';
-
       setState(() {
-        userEmail = email;
-        userRole = role;
+        userEmail = prefs.getString('user_email') ?? '';
+        userRole = prefs.getString('user_role') ?? 'Student';
       });
     } catch (e) {
-      setState(() {
-        userEmail = '';
-        userRole = 'Student';
-      });
+      debugPrint('Error loading user info: $e');
     }
   }
 
   Future<void> fetchData() async {
     try {
       setState(() {
-        loading = true;
+        isLoading = true;
         error = '';
       });
 
-      const apiBase = 'https://school.globaltechsoftwaresolutions.cloud/api';
+      // Fetch ID cards
+      final cardsRes = await http.get(
+        Uri.parse('$apiBaseUrl/id_cards/'),
+        headers: {'Content-Type': 'application/json'},
+      );
 
-      final cardsRes = await http
-          .get(
-            Uri.parse('$apiBase/id_cards/'),
-            headers: {'Content-Type': 'application/json'},
-          )
-          .timeout(const Duration(seconds: 10));
-
-      final cardsData = json.decode(cardsRes.body) as List;
-      idCards = cardsData.map((c) => IdCardRecord.fromJson(c)).toList();
-
-      // Fetch students
-      try {
-        final studentsRes = await http
-            .get(
-              Uri.parse('$apiBase/students/'),
-              headers: {'Content-Type': 'application/json'},
-            )
-            .timeout(const Duration(seconds: 10));
-
-        final studentsData = json.decode(studentsRes.body) as List;
+      if (cardsRes.statusCode == 200) {
+        final cardsData = jsonDecode(cardsRes.body) as List<dynamic>;
         setState(
-          () => students = studentsData
-              .map((s) => StudentRecord.fromJson(s))
-              .toList(),
+          () =>
+              idCards = cardsData.map((e) => IdCardRecord.fromJson(e)).toList(),
         );
+      }
+
+      // Fetch students (try-catch to continue even if it fails)
+      try {
+        final studentsRes = await http.get(
+          Uri.parse('$apiBaseUrl/students/'),
+          headers: {'Content-Type': 'application/json'},
+        );
+
+        if (studentsRes.statusCode == 200) {
+          final studentsData = jsonDecode(studentsRes.body) as List<dynamic>;
+          setState(
+            () => students = studentsData
+                .map((e) => StudentRecord.fromJson(e))
+                .toList(),
+          );
+        }
       } catch (studErr) {
+        debugPrint('Failed to fetch students: $studErr');
         // Continue even if students fetch fails
       }
     } catch (err) {
+      debugPrint('ID cards fetch error: $err');
       setState(
         () => error = 'Unable to load ID cards. Please try again later.',
       );
     } finally {
-      setState(() => loading = false);
+      setState(() => isLoading = false);
     }
   }
 
@@ -325,638 +165,779 @@ class _AllIdCardsState extends State<AllIdCards> {
 
   List<IdCardRecord> get filteredCards {
     if (userEmail.isEmpty) return [];
+
     final emailLower = userEmail.toLowerCase();
-    return idCards
+    final userCards = idCards
         .where((card) => card.userEmail.toLowerCase() == emailLower)
         .toList();
+
+    // For non-students (admin), only show the latest card
+    if (!isStudent && userCards.length > 1) {
+      userCards.sort(
+        (a, b) =>
+            DateTime.parse(b.createdAt).compareTo(DateTime.parse(a.createdAt)),
+      );
+      return [userCards.first];
+    }
+
+    return userCards;
   }
 
   Future<void> handleCreateCard() async {
-    if (userEmail.isEmpty) {
-      throw Exception('No user email found. Please log in again.');
+    try {
+      if (userEmail.isEmpty) {
+        throw Exception('No user email found. Please log in again.');
+      }
+
+      await http.post(
+        Uri.parse('$apiBaseUrl/id_cards/generate/'),
+        headers: {
+          'Content-Type': 'application/json',
+          'Accept': 'application/json',
+        },
+        body: jsonEncode({'email': userEmail}),
+      );
+
+      // Refresh the ID cards list after generation
+      await fetchData();
+      setState(() => showForm = false);
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('✅ ID card generation started successfully!'),
+          ),
+        );
+      }
+    } catch (err) {
+      debugPrint('ID card generation error: $err');
+
+      String errorMessage =
+          'Unable to generate ID card. Please contact your administrator or try again later.';
+
+      // Handle different error types
+      if (err.toString().contains('500')) {
+        errorMessage =
+            'Server error: ID card generation service is temporarily unavailable. Please try again later.';
+      } else if (err.toString().contains('400')) {
+        errorMessage =
+            'Invalid request: Please check your information and try again.';
+      } else if (err.toString().contains('401')) {
+        errorMessage = 'Unauthorized: Please log in and try again.';
+      } else if (err.toString().contains('403')) {
+        errorMessage =
+            'Access denied: You do not have permission to generate ID cards.';
+      } else if (err.toString().contains('S3Error')) {
+        errorMessage =
+            'Storage error: ID card generation is temporarily unavailable due to file storage issues. Please contact your administrator.';
+      }
+
+      if (mounted) {
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('❌ $errorMessage')));
+      }
     }
-
-    const apiBase = 'https://school.globaltechsoftwaresolutions.cloud/api';
-    await http
-        .post(
-          Uri.parse('$apiBase/id_cards/generate/'),
-          headers: {'Content-Type': 'application/json'},
-          body: json.encode({'email': userEmail}),
-        )
-        .timeout(const Duration(seconds: 30));
-
-    await fetchData();
-    setState(() => showForm = false);
   }
 
-  Future<void> downloadCard(String url, String filename) async {
+  Future<void> handleRegenerateCard(String email) async {
+    try {
+      await http.post(
+        Uri.parse('$apiBaseUrl/id_cards/generate/'),
+        headers: {
+          'Content-Type': 'application/json',
+          'Accept': 'application/json',
+        },
+        body: jsonEncode({'email': email}),
+      );
+
+      // Refresh the list
+      await fetchData();
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text(
+              '✅ ID card regeneration started. Please refresh in a moment.',
+            ),
+          ),
+        );
+      }
+    } catch (err) {
+      debugPrint('Regeneration error: $err');
+
+      String errorMessage = 'Failed to regenerate ID card. Please try again.';
+      if (err.toString().contains('S3Error')) {
+        errorMessage =
+            'Storage error: ID card regeneration is temporarily unavailable.';
+      } else if (err.toString().contains('500')) {
+        errorMessage =
+            'Server error: ID card regeneration service is temporarily unavailable.';
+      }
+
+      if (mounted) {
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('❌ $errorMessage')));
+      }
+    }
+  }
+
+  Future<void> _launchUrl(String url) async {
     if (await canLaunch(url)) {
       await launch(url);
     } else {
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(const SnackBar(content: Text('Could not open the file')));
+      if (mounted) {
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('Could not open $url')));
+      }
     }
-  }
-
-  Future<void> regenerateCard(int cardId, String email) async {
-    try {
-      const apiBase = 'https://school.globaltechsoftwaresolutions.cloud/api';
-      await http
-          .post(
-            Uri.parse('$apiBase/id_cards/generate/'),
-            headers: {'Content-Type': 'application/json'},
-            body: json.encode({'email': email}),
-          )
-          .timeout(const Duration(seconds: 30));
-
-      await fetchData();
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text(
-            'ID card regeneration started. Please refresh in a moment.',
-          ),
-        ),
-      );
-    } catch (err) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Failed to regenerate ID card. Please try again.'),
-        ),
-      );
-    }
-  }
-
-  @override
-  void dispose() {
-    _scrollController.dispose();
-    super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      decoration: BoxDecoration(
-        gradient: LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          colors: [Colors.grey[50]!, Colors.blue[50]!],
-        ),
-      ),
-      child: SingleChildScrollView(
-        controller: _scrollController,
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            // Header
-            Card(
-              elevation: 4,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(16),
-              ),
-              child: Padding(
-                padding: const EdgeInsets.all(24),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    const Text(
-                      'Digital Identity',
-                      style: TextStyle(
-                        fontSize: 14,
-                        color: Colors.purple,
-                        fontWeight: FontWeight.w600,
-                        letterSpacing: 1.2,
+    return Padding(
+      padding: const EdgeInsets.all(16),
+      child: isLoading
+          ? const Center(child: CircularProgressIndicator())
+          : SingleChildScrollView(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  // Header
+                  Container(
+                    width: double.infinity,
+                    padding: const EdgeInsets.all(24),
+                    decoration: BoxDecoration(
+                      gradient: const LinearGradient(
+                        colors: [Colors.purple, Colors.blue],
+                        begin: Alignment.topLeft,
+                        end: Alignment.bottomRight,
                       ),
-                    ),
-                    const SizedBox(height: 8),
-                    const Text(
-                      'ID Card Wallet',
-                      style: TextStyle(
-                        fontSize: 32,
-                        fontWeight: FontWeight.bold,
-                        color: Colors.black87,
-                      ),
-                    ),
-                    const SizedBox(height: 8),
-                    Text(
-                      'View and download your verified ID cards. ${isStudent ? 'Students see their classmates\' cards for quick verification.' : 'Personal'}',
-                      style: const TextStyle(fontSize: 16, color: Colors.grey),
-                    ),
-                    const SizedBox(height: 16),
-                    Wrap(
-                      spacing: 8,
-                      runSpacing: 8,
-                      children: [
-                        Container(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 10,
-                            vertical: 6,
-                          ),
-                          decoration: BoxDecoration(
-                            color: Colors.purple[50],
-                            borderRadius: BorderRadius.circular(20),
-                            border: Border.all(color: Colors.purple[200]!),
-                          ),
-                          child: Row(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              Icon(
-                                Icons.shield,
-                                size: 14,
-                                color: Colors.purple,
-                              ),
-                              const SizedBox(width: 4),
-                              const Text(
-                                'Secure Access',
-                                style: TextStyle(
-                                  color: Colors.purple,
-                                  fontWeight: FontWeight.w500,
-                                  fontSize: 12,
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                        Container(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 10,
-                            vertical: 6,
-                          ),
-                          decoration: BoxDecoration(
-                            color: Colors.blue[50],
-                            borderRadius: BorderRadius.circular(20),
-                            border: Border.all(color: Colors.blue[200]!),
-                          ),
-                          child: Row(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              Icon(Icons.people, size: 14, color: Colors.blue),
-                              const SizedBox(width: 4),
-                              Text(
-                                isStudent ? 'Classmates Included' : 'Personal',
-                                style: TextStyle(
-                                  color: Colors.blue,
-                                  fontWeight: FontWeight.w500,
-                                  fontSize: 12,
-                                ),
-                              ),
-                            ],
-                          ),
+                      borderRadius: BorderRadius.circular(16),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.purple.withOpacity(0.3),
+                          spreadRadius: 2,
+                          blurRadius: 8,
+                          offset: const Offset(0, 4),
                         ),
                       ],
                     ),
-                  ],
-                ),
-              ),
-            ),
-
-            const SizedBox(height: 24),
-
-            if (error.isNotEmpty) ...[
-              Container(
-                padding: const EdgeInsets.all(16),
-                decoration: BoxDecoration(
-                  color: Colors.red[50],
-                  border: Border.all(color: Colors.red[200]!),
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                child: Text(error, style: const TextStyle(color: Colors.red)),
-              ),
-              const SizedBox(height: 24),
-            ],
-
-            if (loading) ...[
-              const Center(child: CircularProgressIndicator()),
-            ] else if (filteredCards.isEmpty && !showForm) ...[
-              Card(
-                elevation: 4,
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(16),
-                ),
-                child: Container(
-                  padding: const EdgeInsets.all(48),
-                  child: Column(
-                    children: [
-                      Icon(
-                        Icons.credit_card,
-                        size: 64,
-                        color: Colors.purple[300],
-                      ),
-                      const SizedBox(height: 16),
-                      const Text(
-                        'No ID card found',
-                        style: TextStyle(
-                          fontSize: 24,
-                          fontWeight: FontWeight.bold,
-                          color: Colors.black87,
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          children: [
+                            Container(
+                              padding: const EdgeInsets.all(12),
+                              decoration: BoxDecoration(
+                                color: Colors.white.withOpacity(0.2),
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                              child: const Icon(
+                                Icons.badge,
+                                color: Colors.white,
+                                size: 32,
+                              ),
+                            ),
+                            const SizedBox(width: 16),
+                            const Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    'Digital Identity',
+                                    style: TextStyle(
+                                      color: Colors.white70,
+                                      fontSize: 14,
+                                      fontWeight: FontWeight.w500,
+                                    ),
+                                  ),
+                                  Text(
+                                    'ID Card Wallet',
+                                    style: TextStyle(
+                                      fontSize: 28,
+                                      fontWeight: FontWeight.bold,
+                                      color: Colors.white,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ],
                         ),
-                      ),
-                      const SizedBox(height: 8),
-                      const Text(
-                        'We couldn\'t find a digital ID card linked to your account. Generate one now automatically.',
-                        style: TextStyle(fontSize: 16, color: Colors.grey),
-                        textAlign: TextAlign.center,
-                      ),
-                      const SizedBox(height: 24),
-                      ElevatedButton.icon(
-                        onPressed: () => setState(() => showForm = true),
-                        icon: const Icon(Icons.add),
-                        label: const Text('Generate ID Card'),
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: Colors.purple,
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 24,
-                            vertical: 12,
-                          ),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(12),
+                        const SizedBox(height: 16),
+                        Text(
+                          'View and download your verified ID cards. ${isStudent ? 'Students see their classmates\' cards for quick verification.' : 'Personal access.'}',
+                          style: TextStyle(
+                            color: Colors.white.withOpacity(0.8),
+                            fontSize: 16,
                           ),
                         ),
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-            ] else ...[
-              GridView.builder(
-                shrinkWrap: true,
-                physics: const NeverScrollableScrollPhysics(),
-                gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-                  crossAxisCount: MediaQuery.of(context).size.width > 768
-                      ? 3
-                      : 1,
-                  crossAxisSpacing: 16,
-                  mainAxisSpacing: 16,
-                  childAspectRatio: 0.8,
-                ),
-                itemCount: filteredCards.length,
-                itemBuilder: (context, index) {
-                  final card = filteredCards[index];
-                  final emailLower = card.userEmail.toLowerCase();
-                  final studentRecord = studentMap[emailLower];
-
-                  return Card(
-                    elevation: 6,
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(16),
+                        const SizedBox(height: 20),
+                        Row(
+                          children: [
+                            Container(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 12,
+                                vertical: 6,
+                              ),
+                              decoration: BoxDecoration(
+                                color: Colors.white.withOpacity(0.2),
+                                borderRadius: BorderRadius.circular(20),
+                              ),
+                              child: Row(
+                                children: [
+                                  Icon(
+                                    Icons.security,
+                                    color: Colors.white,
+                                    size: 16,
+                                  ),
+                                  const SizedBox(width: 6),
+                                  const Text(
+                                    'Secure Access',
+                                    style: TextStyle(
+                                      color: Colors.white,
+                                      fontSize: 12,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                            const SizedBox(width: 12),
+                            Container(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 12,
+                                vertical: 6,
+                              ),
+                              decoration: BoxDecoration(
+                                color: Colors.white.withOpacity(0.2),
+                                borderRadius: BorderRadius.circular(20),
+                              ),
+                              child: Row(
+                                children: [
+                                  Icon(
+                                    Icons.group,
+                                    color: Colors.white,
+                                    size: 16,
+                                  ),
+                                  const SizedBox(width: 6),
+                                  Text(
+                                    isStudent
+                                        ? 'Classmates Included'
+                                        : 'Personal',
+                                    style: const TextStyle(
+                                      color: Colors.white,
+                                      fontSize: 12,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ],
+                        ),
+                      ],
                     ),
-                    child: Container(
+                  ),
+
+                  const SizedBox(height: 24),
+
+                  // Error Display
+                  if (error.isNotEmpty)
+                    Container(
+                      padding: const EdgeInsets.all(16),
                       decoration: BoxDecoration(
-                        gradient: LinearGradient(
-                          begin: Alignment.topLeft,
-                          end: Alignment.bottomRight,
-                          colors: [Colors.purple[600]!, Colors.blue[600]!],
+                        color: Colors.red[50],
+                        border: Border.all(color: Colors.red[200]!),
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: Row(
+                        children: [
+                          const Icon(Icons.error, color: Colors.red),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: Text(
+                              error,
+                              style: const TextStyle(color: Colors.red),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+
+                  const SizedBox(height: 16),
+
+                  // No ID cards state
+                  if (filteredCards.isEmpty && !showForm)
+                    Center(
+                      child: Container(
+                        padding: const EdgeInsets.all(48),
+                        decoration: BoxDecoration(
+                          color: Colors.white,
+                          borderRadius: BorderRadius.circular(16),
+                          border: Border.all(
+                            color: Colors.purple[200]!,
+                            style: BorderStyle.solid,
+                          ),
                         ),
+                        child: Column(
+                          children: [
+                            Icon(
+                              Icons.badge,
+                              size: 64,
+                              color: Colors.purple[400],
+                            ),
+                            const SizedBox(height: 16),
+                            const Text(
+                              'No ID card found',
+                              style: TextStyle(
+                                fontSize: 24,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                            const SizedBox(height: 8),
+                            const Text(
+                              'We couldn\'t find a digital ID card linked to your account. Generate one now automatically.',
+                              textAlign: TextAlign.center,
+                              style: TextStyle(color: Colors.grey),
+                            ),
+                            const SizedBox(height: 24),
+                            ElevatedButton.icon(
+                              onPressed: () => setState(() => showForm = true),
+                              icon: const Icon(Icons.add),
+                              label: const Text('Generate ID Card'),
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: Colors.purple,
+                                foregroundColor: Colors.white,
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 24,
+                                  vertical: 12,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    )
+                  else if (filteredCards.isNotEmpty)
+                    GridView.builder(
+                      shrinkWrap: true,
+                      physics: const NeverScrollableScrollPhysics(),
+                      gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                        crossAxisCount: MediaQuery.of(context).size.width > 768
+                            ? 3
+                            : (MediaQuery.of(context).size.width > 600 ? 2 : 1),
+                        crossAxisSpacing: 16,
+                        mainAxisSpacing: 16,
+                        childAspectRatio: 1.2,
+                      ),
+                      itemCount: filteredCards.length,
+                      itemBuilder: (context, index) {
+                        final card = filteredCards[index];
+                        final emailLower = card.userEmail.toLowerCase();
+                        final studentRecord = studentMap[emailLower];
+
+                        return Card(
+                          elevation: 4,
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(16),
+                          ),
+                          child: Container(
+                            decoration: const BoxDecoration(
+                              gradient: LinearGradient(
+                                colors: [Colors.purple, Colors.blue],
+                                begin: Alignment.topCenter,
+                                end: Alignment.bottomCenter,
+                              ),
+                              borderRadius: BorderRadius.all(
+                                Radius.circular(16),
+                              ),
+                            ),
+                            child: Padding(
+                              padding: const EdgeInsets.all(20),
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  // Header with ID Card icon
+                                  Row(
+                                    mainAxisAlignment:
+                                        MainAxisAlignment.spaceBetween,
+                                    children: [
+                                      const Column(
+                                        crossAxisAlignment:
+                                            CrossAxisAlignment.start,
+                                        children: [
+                                          Text(
+                                            'ID CARD',
+                                            style: TextStyle(
+                                              color: Colors.white70,
+                                              fontSize: 10,
+                                              letterSpacing: 1.5,
+                                            ),
+                                          ),
+                                          SizedBox(height: 4),
+                                        ],
+                                      ),
+                                      Icon(
+                                        Icons.badge,
+                                        color: Colors.white.withOpacity(0.8),
+                                        size: 24,
+                                      ),
+                                    ],
+                                  ),
+
+                                  // User Name and Email
+                                  Text(
+                                    card.userName.isNotEmpty
+                                        ? card.userName
+                                        : card.userEmail,
+                                    style: const TextStyle(
+                                      color: Colors.white,
+                                      fontSize: 20,
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                  ),
+                                  const SizedBox(height: 4),
+                                  Text(
+                                    card.userEmail,
+                                    style: TextStyle(
+                                      color: Colors.white.withOpacity(0.8),
+                                      fontSize: 14,
+                                    ),
+                                  ),
+
+                                  const Spacer(),
+
+                                  // Class and Section info
+                                  if (studentRecord?.className != null)
+                                    Container(
+                                      margin: const EdgeInsets.only(bottom: 8),
+                                      padding: const EdgeInsets.symmetric(
+                                        horizontal: 8,
+                                        vertical: 4,
+                                      ),
+                                      decoration: BoxDecoration(
+                                        color: Colors.white.withOpacity(0.2),
+                                        borderRadius: BorderRadius.circular(8),
+                                      ),
+                                      child: Text(
+                                        'Class ${studentRecord!.className}${studentRecord.section != null ? ' (${studentRecord.section})' : ''}',
+                                        style: const TextStyle(
+                                          color: Colors.white,
+                                          fontSize: 12,
+                                          fontWeight: FontWeight.w500,
+                                        ),
+                                      ),
+                                    ),
+
+                                  // Created date
+                                  Text(
+                                    'Created: ${_formatDate(card.createdAt)}',
+                                    style: const TextStyle(
+                                      color: Colors.white70,
+                                      fontSize: 10,
+                                    ),
+                                  ),
+
+                                  const SizedBox(height: 16),
+
+                                  // Action buttons
+                                  if (card.idCardUrl != null ||
+                                      card.pdfUrl != null)
+                                    Row(
+                                      children: [
+                                        Expanded(
+                                          child: ElevatedButton.icon(
+                                            onPressed: () => setState(
+                                              () => previewUrl =
+                                                  card.idCardUrl ?? card.pdfUrl,
+                                            ),
+                                            icon: const Icon(
+                                              Icons.visibility,
+                                              size: 16,
+                                            ),
+                                            label: const Text('View'),
+                                            style: ElevatedButton.styleFrom(
+                                              backgroundColor: Colors.white,
+                                              foregroundColor: Colors.purple,
+                                              padding:
+                                                  const EdgeInsets.symmetric(
+                                                    vertical: 8,
+                                                  ),
+                                            ),
+                                          ),
+                                        ),
+                                        const SizedBox(width: 8),
+                                        Expanded(
+                                          child: ElevatedButton.icon(
+                                            onPressed: () => _launchUrl(
+                                              card.idCardUrl ?? card.pdfUrl!,
+                                            ),
+                                            icon: const Icon(
+                                              Icons.download,
+                                              size: 16,
+                                            ),
+                                            label: const Text('Download'),
+                                            style: ElevatedButton.styleFrom(
+                                              backgroundColor: Colors.white,
+                                              foregroundColor: Colors.purple,
+                                              padding:
+                                                  const EdgeInsets.symmetric(
+                                                    vertical: 8,
+                                                  ),
+                                            ),
+                                          ),
+                                        ),
+                                      ],
+                                    )
+                                  else
+                                    Column(
+                                      crossAxisAlignment:
+                                          CrossAxisAlignment.start,
+                                      children: [
+                                        Container(
+                                          padding: const EdgeInsets.all(8),
+                                          decoration: BoxDecoration(
+                                            color: Colors.yellow.withOpacity(
+                                              0.2,
+                                            ),
+                                            borderRadius: BorderRadius.circular(
+                                              8,
+                                            ),
+                                          ),
+                                          child: const Text(
+                                            '⚠️ ID card is being generated. Please wait or try regenerating.',
+                                            style: TextStyle(
+                                              color: Colors.white,
+                                              fontSize: 12,
+                                            ),
+                                          ),
+                                        ),
+                                        const SizedBox(height: 8),
+                                        SizedBox(
+                                          width: double.infinity,
+                                          child: ElevatedButton.icon(
+                                            onPressed: () =>
+                                                handleRegenerateCard(
+                                                  card.userEmail,
+                                                ),
+                                            icon: const Icon(
+                                              Icons.refresh,
+                                              size: 16,
+                                            ),
+                                            label: const Text('Regenerate'),
+                                            style: ElevatedButton.styleFrom(
+                                              backgroundColor: Colors.orange,
+                                              foregroundColor: Colors.white,
+                                              padding:
+                                                  const EdgeInsets.symmetric(
+                                                    vertical: 10,
+                                                  ),
+                                            ),
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                ],
+                              ),
+                            ),
+                          ),
+                        );
+                      },
+                    ),
+
+                  // Generate Form
+                  if (showForm)
+                    Container(
+                      margin: const EdgeInsets.only(top: 24),
+                      padding: const EdgeInsets.all(24),
+                      decoration: BoxDecoration(
+                        color: Colors.white,
                         borderRadius: BorderRadius.circular(16),
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.grey.withOpacity(0.1),
+                            spreadRadius: 1,
+                            blurRadius: 4,
+                          ),
+                        ],
                       ),
                       child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          // Header
+                          const Text(
+                            'Generate Your ID Card',
+                            style: TextStyle(
+                              fontSize: 24,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                          const SizedBox(height: 8),
+                          const Text(
+                            'Click the button below to automatically generate your digital ID card for the logged-in account.',
+                            style: TextStyle(color: Colors.grey),
+                          ),
+                          const SizedBox(height: 24),
                           Container(
-                            padding: const EdgeInsets.all(20),
+                            padding: const EdgeInsets.all(16),
+                            decoration: BoxDecoration(
+                              color: Colors.grey[50],
+                              borderRadius: BorderRadius.circular(12),
+                            ),
                             child: Row(
                               children: [
+                                const Icon(Icons.email, color: Colors.grey),
+                                const SizedBox(width: 12),
                                 Expanded(
                                   child: Column(
                                     crossAxisAlignment:
                                         CrossAxisAlignment.start,
                                     children: [
                                       const Text(
-                                        'ID CARD',
+                                        'Email',
                                         style: TextStyle(
                                           fontSize: 12,
-                                          color: Colors.white70,
-                                          letterSpacing: 2,
-                                          fontWeight: FontWeight.w600,
-                                        ),
-                                      ),
-                                      const SizedBox(height: 4),
-                                      Text(
-                                        card.userName.isNotEmpty
-                                            ? card.userName
-                                            : card.userEmail,
-                                        style: const TextStyle(
-                                          fontSize: 20,
-                                          fontWeight: FontWeight.bold,
-                                          color: Colors.white,
+                                          color: Colors.grey,
                                         ),
                                       ),
                                       Text(
-                                        card.userEmail,
+                                        userEmail,
                                         style: const TextStyle(
-                                          color: Colors.white70,
+                                          fontWeight: FontWeight.w500,
                                         ),
                                       ),
                                     ],
                                   ),
-                                ),
-                                Icon(
-                                  Icons.credit_card,
-                                  size: 32,
-                                  color: Colors.white70,
                                 ),
                               ],
                             ),
                           ),
-
-                          // Details
-                          Expanded(
-                            child: Container(
-                              padding: const EdgeInsets.all(20),
-                              decoration: const BoxDecoration(
-                                color: Colors.white,
-                                borderRadius: BorderRadius.only(
-                                  bottomLeft: Radius.circular(16),
-                                  bottomRight: Radius.circular(16),
+                          const SizedBox(height: 24),
+                          Row(
+                            children: [
+                              Expanded(
+                                child: ElevatedButton(
+                                  onPressed: handleCreateCard,
+                                  style: ElevatedButton.styleFrom(
+                                    backgroundColor: Colors.purple,
+                                    foregroundColor: Colors.white,
+                                    padding: const EdgeInsets.symmetric(
+                                      vertical: 16,
+                                    ),
+                                  ),
+                                  child: const Text('Generate ID Card'),
                                 ),
                               ),
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  if (studentRecord?.className != null) ...[
-                                    Row(
-                                      mainAxisAlignment:
-                                          MainAxisAlignment.spaceBetween,
-                                      children: [
-                                        const Text(
-                                          'Class',
-                                          style: TextStyle(
-                                            color: Colors.grey,
-                                            fontSize: 14,
-                                          ),
-                                        ),
-                                        Text(
-                                          studentRecord!.className!,
-                                          style: const TextStyle(
-                                            fontWeight: FontWeight.w600,
-                                            color: Colors.black87,
-                                          ),
-                                        ),
-                                      ],
-                                    ),
-                                    const SizedBox(height: 8),
-                                  ],
-                                  if (studentRecord?.section != null) ...[
-                                    Row(
-                                      mainAxisAlignment:
-                                          MainAxisAlignment.spaceBetween,
-                                      children: [
-                                        const Text(
-                                          'Section',
-                                          style: TextStyle(
-                                            color: Colors.grey,
-                                            fontSize: 14,
-                                          ),
-                                        ),
-                                        Text(
-                                          studentRecord!.section!,
-                                          style: const TextStyle(
-                                            fontWeight: FontWeight.w600,
-                                            color: Colors.black87,
-                                          ),
-                                        ),
-                                      ],
-                                    ),
-                                    const SizedBox(height: 8),
-                                  ],
-                                  Row(
-                                    mainAxisAlignment:
-                                        MainAxisAlignment.spaceBetween,
-                                    children: [
-                                      const Text(
-                                        'Created',
-                                        style: TextStyle(
-                                          color: Colors.grey,
-                                          fontSize: 14,
-                                        ),
-                                      ),
-                                      Text(
-                                        DateTime.parse(
-                                          card.createdAt,
-                                        ).toLocal().toString().split(' ')[0],
-                                        style: const TextStyle(
-                                          fontWeight: FontWeight.w600,
-                                          color: Colors.black87,
-                                        ),
-                                      ),
-                                    ],
+                              const SizedBox(width: 12),
+                              ElevatedButton(
+                                onPressed: () =>
+                                    setState(() => showForm = false),
+                                style: ElevatedButton.styleFrom(
+                                  backgroundColor: Colors.grey[200],
+                                  foregroundColor: Colors.black,
+                                  padding: const EdgeInsets.symmetric(
+                                    vertical: 16,
+                                    horizontal: 24,
                                   ),
-                                  const Spacer(),
-                                  if (card.idCardUrl != null ||
-                                      card.pdfUrl != null) ...[
-                                    Wrap(
-                                      spacing: 8,
-                                      runSpacing: 8,
-                                      children: [
-                                        SizedBox(
-                                          width:
-                                              MediaQuery.of(
-                                                    context,
-                                                  ).size.width >
-                                                  600
-                                              ? (MediaQuery.of(
-                                                              context,
-                                                            ).size.width -
-                                                            80) /
-                                                        2 -
-                                                    4
-                                              : double.infinity,
-                                          child: OutlinedButton.icon(
-                                            onPressed: () {
-                                              setState(
-                                                () => previewUrl =
-                                                    card.idCardUrl ??
-                                                    card.pdfUrl,
-                                              );
-                                              WidgetsBinding.instance
-                                                  .addPostFrameCallback((_) {
-                                                    _scrollController.animateTo(
-                                                      _scrollController
-                                                          .position
-                                                          .maxScrollExtent,
-                                                      duration: const Duration(
-                                                        milliseconds: 500,
-                                                      ),
-                                                      curve: Curves.easeInOut,
-                                                    );
-                                                  });
-                                            },
-                                            icon: const Icon(
-                                              Icons.visibility,
-                                              size: 16,
-                                            ),
-                                            label: const Text(
-                                              'View',
-                                              style: TextStyle(fontSize: 12),
-                                            ),
-                                            style: OutlinedButton.styleFrom(
-                                              foregroundColor: Colors.purple,
-                                              side: const BorderSide(
-                                                color: Colors.purple,
-                                              ),
-                                              padding:
-                                                  const EdgeInsets.symmetric(
-                                                    vertical: 8,
-                                                  ),
-                                            ),
-                                          ),
-                                        ),
-                                        SizedBox(
-                                          width:
-                                              MediaQuery.of(
-                                                    context,
-                                                  ).size.width >
-                                                  600
-                                              ? (MediaQuery.of(
-                                                              context,
-                                                            ).size.width -
-                                                            80) /
-                                                        2 -
-                                                    4
-                                              : double.infinity,
-                                          child: ElevatedButton.icon(
-                                            onPressed: () => downloadCard(
-                                              card.idCardUrl ?? card.pdfUrl!,
-                                              'id_card.pdf',
-                                            ),
-                                            icon: const Icon(
-                                              Icons.download,
-                                              size: 16,
-                                            ),
-                                            label: const Text(
-                                              'Download',
-                                              style: TextStyle(fontSize: 12),
-                                            ),
-                                            style: ElevatedButton.styleFrom(
-                                              backgroundColor: Colors.purple,
-                                              padding:
-                                                  const EdgeInsets.symmetric(
-                                                    vertical: 8,
-                                                  ),
-                                            ),
-                                          ),
-                                        ),
-                                      ],
-                                    ),
-                                  ] else ...[
-                                    Container(
-                                      padding: const EdgeInsets.all(12),
-                                      decoration: BoxDecoration(
-                                        color: Colors.yellow[50],
-                                        border: Border.all(
-                                          color: Colors.yellow[200]!,
-                                        ),
-                                        borderRadius: BorderRadius.circular(8),
-                                      ),
-                                      child: Row(
-                                        children: [
-                                          Icon(
-                                            Icons.warning,
-                                            color: Colors.orange[600],
-                                          ),
-                                          const SizedBox(width: 8),
-                                          const Expanded(
-                                            child: Text(
-                                              'ID card is being generated. Please wait or try regenerating.',
-                                              style: TextStyle(
-                                                color: Colors.orange,
-                                                fontSize: 12,
-                                              ),
-                                            ),
-                                          ),
-                                        ],
-                                      ),
-                                    ),
-                                    const SizedBox(height: 12),
-                                    SizedBox(
-                                      width: double.infinity,
-                                      child: ElevatedButton.icon(
-                                        onPressed: () => regenerateCard(
-                                          card.id,
-                                          card.userEmail,
-                                        ),
-                                        icon: const Icon(Icons.refresh),
-                                        label: const Text('Regenerate ID Card'),
-                                        style: ElevatedButton.styleFrom(
-                                          backgroundColor: Colors.orange,
-                                        ),
-                                      ),
-                                    ),
-                                  ],
-                                ],
+                                ),
+                                child: const Text('Cancel'),
                               ),
-                            ),
+                            ],
                           ),
                         ],
                       ),
                     ),
-                  );
-                },
-              ),
-            ],
 
-            if (showForm) ...[
-              const SizedBox(height: 24),
-              Center(
-                child: IdCardForm(
-                  defaultEmail: userEmail,
-                  onSubmit: handleCreateCard,
-                  onCancel: () => setState(() => showForm = false),
-                ),
-              ),
-            ],
-
-            if (previewUrl != null) ...[
-              const SizedBox(height: 24),
-              Card(
-                elevation: 4,
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(16),
-                ),
-                child: Padding(
-                  padding: const EdgeInsets.all(24),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      const Text(
-                        'ID Card Preview',
-                        style: TextStyle(
-                          fontSize: 20,
-                          fontWeight: FontWeight.bold,
-                          color: Colors.black87,
-                        ),
-                      ),
-                      const SizedBox(height: 8),
-                      const Text(
-                        'This is a preview of your ID card. Use the Download ID Card button above if you want to save it.',
-                        style: TextStyle(fontSize: 14, color: Colors.grey),
-                      ),
-                      const SizedBox(height: 16),
-                      Container(
-                        height: 400,
-                        width: double.infinity,
-                        constraints: const BoxConstraints(maxWidth: 400),
-                        decoration: BoxDecoration(
-                          border: Border.all(color: Colors.grey[300]!),
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                        child: const Center(
-                          child: Text(
-                            'PDF Preview not available in mobile view.\nPlease use download button.',
-                            textAlign: TextAlign.center,
-                            style: TextStyle(color: Colors.grey),
+                  // Preview
+                  if (previewUrl != null)
+                    Container(
+                      margin: const EdgeInsets.only(top: 24),
+                      padding: const EdgeInsets.all(24),
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        borderRadius: BorderRadius.circular(16),
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.grey.withOpacity(0.1),
+                            spreadRadius: 1,
+                            blurRadius: 4,
                           ),
-                        ),
+                        ],
                       ),
-                    ],
-                  ),
-                ),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              const Text(
+                                'ID Card Preview',
+                                style: TextStyle(
+                                  fontSize: 20,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                              IconButton(
+                                onPressed: () =>
+                                    setState(() => previewUrl = null),
+                                icon: const Icon(Icons.close),
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 8),
+                          const Text(
+                            'This is a preview of your ID card. Use the Download button above if you want to save it.',
+                            style: TextStyle(color: Colors.grey, fontSize: 14),
+                          ),
+                          const SizedBox(height: 16),
+                          Container(
+                            height: 400,
+                            width: double.infinity,
+                            decoration: BoxDecoration(
+                              border: Border.all(color: Colors.grey[300]!),
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                            child: previewUrl!.endsWith('.pdf')
+                                ? const Center(
+                                    child: Text(
+                                      'PDF Preview - Use download button to view',
+                                    ),
+                                  )
+                                : Image.network(
+                                    previewUrl!,
+                                    fit: BoxFit.contain,
+                                    loadingBuilder:
+                                        (context, child, loadingProgress) {
+                                          if (loadingProgress == null)
+                                            return child;
+                                          return const Center(
+                                            child: CircularProgressIndicator(),
+                                          );
+                                        },
+                                    errorBuilder: (context, error, stackTrace) {
+                                      return const Center(
+                                        child: Text('Failed to load preview'),
+                                      );
+                                    },
+                                  ),
+                          ),
+                        ],
+                      ),
+                    ),
+                ],
               ),
-            ],
-          ],
-        ),
-      ),
+            ),
     );
+  }
+
+  String _formatDate(String dateStr) {
+    try {
+      final date = DateTime.parse(dateStr);
+      return '${date.day}/${date.month}/${date.year}';
+    } catch (e) {
+      return dateStr;
+    }
   }
 }

@@ -30,6 +30,8 @@ import 'screens/admin/admin_calendar_page.dart';
 import 'screens/admin/admin_notice_page.dart';
 import 'screens/admin/admin_programs_page.dart';
 import 'screens/admin/admin_reports_page.dart';
+import 'screens/admin/admin_projects_page.dart';
+import 'screens/admin/admin_profile_page.dart';
 import 'screens/management/management_dashboard.dart';
 import 'screens/principal/principal_dashboard.dart';
 import 'screens/parent/parent_dashboard.dart';
@@ -609,6 +611,8 @@ class _DashboardPageState extends State<DashboardPage> {
         } else {
           return const StudentReportsPage();
         }
+      case 'projects':
+        return const AdminProjectsPage();
       case 'leaves':
         return const StudentLeavesPage();
       case 'raise issue':
@@ -622,7 +626,11 @@ class _DashboardPageState extends State<DashboardPage> {
       case 'id card':
         return const StudentIdPage();
       case 'profile':
-        return const StudentProfilePage();
+        if (widget.userRole.toLowerCase() == 'admin') {
+          return const AdminProfilePage();
+        } else {
+          return const StudentProfilePage();
+        }
       default:
         return Container(
           height: 400,
