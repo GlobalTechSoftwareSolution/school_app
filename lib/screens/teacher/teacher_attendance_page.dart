@@ -196,6 +196,20 @@ class _TeacherAttendancePageState extends State<TeacherAttendancePage> {
     super.dispose();
   }
 
+  // Helper function to get authentication token
+  Future<String?> _getToken() async {
+    final prefs = await SharedPreferences.getInstance();
+    return prefs.getString('accessToken');
+  }
+
+  // Helper function to get API headers with authentication
+  Future<Map<String, String>> _getApiHeaders() async {
+    final token = await _getToken();
+    return token != null
+        ? {'Content-Type': 'application/json', 'Authorization': 'Bearer $token'}
+        : {'Content-Type': 'application/json'};
+  }
+
   Future<void> initializeData() async {
     try {
       await loadTeacherInfo();
@@ -208,6 +222,11 @@ class _TeacherAttendancePageState extends State<TeacherAttendancePage> {
       }
     } catch (e) {
       debugPrint('Error initializing data: $e');
+      // Show user-friendly error message
+      setState(() {
+        errorMessage = 'Failed to load data. Please check your connection.';
+        showErrorMessage = true;
+      });
     } finally {
       setState(() {
         loading = false;
@@ -228,6 +247,10 @@ class _TeacherAttendancePageState extends State<TeacherAttendancePage> {
       });
     } catch (e) {
       debugPrint('Error loading teacher info: $e');
+      setState(() {
+        errorMessage = 'Failed to load teacher information.';
+        showErrorMessage = true;
+      });
     }
   }
 
@@ -235,11 +258,20 @@ class _TeacherAttendancePageState extends State<TeacherAttendancePage> {
     if (teacherEmail == null) return;
 
     try {
+      final headers = await _getApiHeaders();
+
       // Load timetable
       final timetableResponse = await http.get(
         Uri.parse('$apiBaseUrl/timetable/'),
+        headers: headers,
       );
-      if (timetableResponse.statusCode != 200) return;
+
+      if (timetableResponse.statusCode != 200) {
+        debugPrint(
+          'Timetable API failed: ${timetableResponse.statusCode} - ${timetableResponse.body}',
+        );
+        return;
+      }
 
       final timetableData = jsonDecode(timetableResponse.body) as List<dynamic>;
       final timetable = timetableData
@@ -275,7 +307,11 @@ class _TeacherAttendancePageState extends State<TeacherAttendancePage> {
       }
 
       // Load class details
-      final classesResponse = await http.get(Uri.parse('$apiBaseUrl/classes/'));
+      final classesResponse = await http.get(
+        Uri.parse('$apiBaseUrl/classes/'),
+        headers: headers,
+      );
+
       if (classesResponse.statusCode == 200) {
         final classesData = jsonDecode(classesResponse.body) as List<dynamic>;
         final classes = classesData
@@ -302,9 +338,18 @@ class _TeacherAttendancePageState extends State<TeacherAttendancePage> {
             });
           }
         }
+      } else {
+        debugPrint(
+          'Classes API failed: ${classesResponse.statusCode} - ${classesResponse.body}',
+        );
       }
     } catch (e) {
       debugPrint('Error loading teacher classes: $e');
+      setState(() {
+        errorMessage =
+            'Failed to load your classes. Please check your connection.';
+        showErrorMessage = true;
+      });
     }
   }
 
@@ -312,7 +357,12 @@ class _TeacherAttendancePageState extends State<TeacherAttendancePage> {
     if (selectedClass == null) return;
 
     try {
-      final response = await http.get(Uri.parse('$apiBaseUrl/students/'));
+      final headers = await _getApiHeaders();
+      final response = await http.get(
+        Uri.parse('$apiBaseUrl/students/'),
+        headers: headers,
+      );
+
       if (response.statusCode == 200) {
         final studentsData = jsonDecode(response.body) as List<dynamic>;
         final filteredStudents = studentsData
@@ -323,9 +373,21 @@ class _TeacherAttendancePageState extends State<TeacherAttendancePage> {
         setState(() {
           students = filteredStudents;
         });
+      } else {
+        debugPrint(
+          'Students API failed: ${response.statusCode} - ${response.body}',
+        );
+        setState(() {
+          errorMessage = 'Failed to load students. Please try again.';
+          showErrorMessage = true;
+        });
       }
     } catch (e) {
       debugPrint('Error loading students: $e');
+      setState(() {
+        errorMessage = 'Failed to load students. Please check your connection.';
+        showErrorMessage = true;
+      });
     }
   }
 
@@ -340,10 +402,12 @@ class _TeacherAttendancePageState extends State<TeacherAttendancePage> {
     }
 
     try {
+      final headers = await _getApiHeaders();
       final response = await http.get(
         Uri.parse(
           '$apiBaseUrl/student_attendance/?date=$selectedDate&class_id=$selectedClass&subject=$selectedSubject&period=$selectedPeriod',
         ),
+        headers: headers,
       );
 
       if (response.statusCode == 200) {
@@ -390,6 +454,14 @@ class _TeacherAttendancePageState extends State<TeacherAttendancePage> {
             'total': students.length,
           };
         });
+      } else {
+        debugPrint(
+          'Student attendance API failed: ${response.statusCode} - ${response.body}',
+        );
+        setState(() {
+          errorMessage = 'Failed to load attendance data. Please try again.';
+          showErrorMessage = true;
+        });
       }
     } catch (e) {
       debugPrint('Error loading student attendance: $e');
@@ -397,6 +469,9 @@ class _TeacherAttendancePageState extends State<TeacherAttendancePage> {
         attendanceRecords = [];
         submittedAttendance = {};
         attendanceStats = {'present': 0, 'absent': 0, 'total': students.length};
+        errorMessage =
+            'Failed to load attendance data. Please check your connection.';
+        showErrorMessage = true;
       });
     }
   }
@@ -405,9 +480,12 @@ class _TeacherAttendancePageState extends State<TeacherAttendancePage> {
     if (teacherEmail == null) return;
 
     try {
+      final headers = await _getApiHeaders();
       final response = await http.get(
         Uri.parse('$apiBaseUrl/attendance/?date=$selectedDate'),
+        headers: headers,
       );
+
       if (response.statusCode == 200) {
         final attendanceData = jsonDecode(response.body) as List<dynamic>;
         final records = attendanceData
@@ -421,9 +499,22 @@ class _TeacherAttendancePageState extends State<TeacherAttendancePage> {
             (r) => r.date == selectedDate && r.status == 'Present',
           );
         });
+      } else {
+        debugPrint(
+          'Teacher attendance API failed: ${response.statusCode} - ${response.body}',
+        );
+        setState(() {
+          errorMessage = 'Failed to load your attendance. Please try again.';
+          showErrorMessage = true;
+        });
       }
     } catch (e) {
       debugPrint('Error loading teacher attendance: $e');
+      setState(() {
+        errorMessage =
+            'Failed to load your attendance. Please check your connection.';
+        showErrorMessage = true;
+      });
     }
   }
 
@@ -474,6 +565,7 @@ class _TeacherAttendancePageState extends State<TeacherAttendancePage> {
     }
 
     try {
+      final headers = await _getApiHeaders();
       final classInfo = classesList.firstWhere((c) => c.id == selectedClass);
       final subjectInfo = classSubjectsMap[selectedClass]?.firstWhere(
         (s) => s['id'] == selectedSubject,
@@ -501,7 +593,7 @@ class _TeacherAttendancePageState extends State<TeacherAttendancePage> {
 
       final response = await http.post(
         Uri.parse('$apiBaseUrl/student_attendance/bulk_create/'),
-        headers: {'Content-Type': 'application/json'},
+        headers: headers,
         body: jsonEncode(payload),
       );
 
@@ -521,9 +613,13 @@ class _TeacherAttendancePageState extends State<TeacherAttendancePage> {
         // Reload attendance data
         await loadStudentAttendance();
       } else {
+        debugPrint(
+          'Submit attendance API failed: ${response.statusCode} - ${response.body}',
+        );
         throw Exception('Failed to submit attendance');
       }
     } catch (e) {
+      debugPrint('Error submitting attendance: $e');
       setState(() {
         errorMessage = 'Failed to submit attendance. Please try again.';
         showErrorMessage = true;
@@ -541,6 +637,7 @@ class _TeacherAttendancePageState extends State<TeacherAttendancePage> {
     if (teacherEmail == null) return;
 
     try {
+      final headers = await _getApiHeaders();
       final payload = {
         'user_email': teacherEmail,
         'date': selectedDate,
@@ -550,16 +647,29 @@ class _TeacherAttendancePageState extends State<TeacherAttendancePage> {
 
       final response = await http.post(
         Uri.parse('$apiBaseUrl/attendance/'),
-        headers: {'Content-Type': 'application/json'},
+        headers: headers,
         body: jsonEncode(payload),
       );
 
       if (response.statusCode == 201) {
         setState(() => teacherAttendanceMarked = true);
         await loadTeacherAttendance();
+      } else {
+        debugPrint(
+          'Mark teacher attendance API failed: ${response.statusCode} - ${response.body}',
+        );
+        setState(() {
+          errorMessage = 'Failed to mark your attendance. Please try again.';
+          showErrorMessage = true;
+        });
       }
     } catch (e) {
       debugPrint('Error marking teacher attendance: $e');
+      setState(() {
+        errorMessage =
+            'Failed to mark your attendance. Please check your connection.';
+        showErrorMessage = true;
+      });
     }
   }
 
